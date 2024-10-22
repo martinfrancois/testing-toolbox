@@ -1,0 +1,10 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 1000
+      name: Run
+scenarios:
+  - flow:
+      - get:
+          url: "/posts"
