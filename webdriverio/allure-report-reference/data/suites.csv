@@ -1,0 +1,4 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","2403","should login with valid credentials sometimes","","Tue Oct 22 16:53:56 EEST 2024","failed","Tue Oct 22 16:53:58 EEST 2024","","Flaky Test Simulation","",""
+"","2334","should login with valid credentials","","Tue Oct 22 16:53:56 EEST 2024","passed","Tue Oct 22 16:53:58 EEST 2024","","Login","",""
+"","11383","should login with valid credentials failing","","Tue Oct 22 16:53:56 EEST 2024","failed","Tue Oct 22 16:54:07 EEST 2024","","Failing Test Simulation","",""

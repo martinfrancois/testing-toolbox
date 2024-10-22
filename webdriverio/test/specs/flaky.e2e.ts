@@ -11,7 +11,7 @@ describe('Flaky Test Simulation', () => {
         await expect(SecurePage.loginSuccess).toHaveText(
             'Logged In Successfully')
 
-        const randomFail = Math.random() > 0.5; // 50% chance of failing the test
+        const randomFail = Math.random() > 0.4; // 60% chance of failing the test
         if (randomFail) {
             // Test fails with random chance
             fail('Random failure triggered');

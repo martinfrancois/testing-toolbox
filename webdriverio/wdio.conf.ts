@@ -1,4 +1,5 @@
 import video from 'wdio-video-reporter';
+import {addAttachment} from "@wdio/allure-reporter";
 
 export const config: WebdriverIO.Config = {
     //
@@ -210,8 +211,12 @@ export const config: WebdriverIO.Config = {
     /**
      * Function to be executed after a test (in Mocha/Jasmine).
      */
-    // afterTest: function(test, context, { error, result, duration, passed, retries }) {
-    // },
+    , afterTest: async (_test, _context, {passed}) => {
+        if (!passed) {
+            const pageSource = await browser.getPageSource();
+            addAttachment('Page Source', pageSource, 'text/plain'); // text/html would be displayed rendered in an iframe instead
+        }
+    },
 
     /**
      * Hook that gets executed after the suite has ended

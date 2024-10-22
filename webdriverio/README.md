@@ -11,6 +11,16 @@
 
 ## How to run
 
+Run tests:
+
 ```bash
-npm run wdio
+npm run test
 ```
+
+Open report:
+
+```bash
+npm run report
+```
+
+Example report is available in the `allure-report-reference` folder.

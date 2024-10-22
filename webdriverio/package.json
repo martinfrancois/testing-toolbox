@@ -21,6 +21,7 @@
   "scripts": {
     "test": "npm run clean:allure-results && npm run test:without-report ; npm run copy:allure-history ; npm run generate:allure-report",
     "report": "allure open",
+    "report": "allure open",
     "test:without-report": "wdio run ./wdio.conf.ts",
     "clean:allure-results": "rimraf _results_/allure-raw",
     "copy:allure-history": "cpy 'allure-report/history/**' _results_/allure-raw/history",
