@@ -1,3 +1,5 @@
+import video from 'wdio-video-reporter';
+
 export const config: WebdriverIO.Config = {
     //
     // ====================
@@ -109,9 +111,15 @@ export const config: WebdriverIO.Config = {
     // Test reporter for stdout.
     // The only one supported by default is 'dot'
     // see also: https://webdriver.io/docs/dot-reporter.html
-    reporters: ['spec', ['allure', {
-        outputDir: 'allure-results'
+    reporters: ['spec', [video, {
+        saveAllVideos: false,       // If true, also saves videos for successful test cases
+        videoSlowdownMultiplier: 20, // Higher to get slower videos, lower for faster videos [Value 1-100]
+    }], ['allure', {
+        outputDir: './_results_/allure-raw',
+        disableWebdriverStepsReporting: true,
+        disableWebdriverScreenshotsReporting: true,
     }]],
+    "reporterSyncTimeout": 30000,
     //
     // Options to be passed to Jasmine.
     jasmineOpts: {
@@ -202,15 +210,8 @@ export const config: WebdriverIO.Config = {
     /**
      * Function to be executed after a test (in Mocha/Jasmine).
      */
-    , afterTest: function (
-        _test,
-        _context,
-        {error}
-    ) {
-        if (error) {
-            browser.takeScreenshot();
-        }
-    },
+    // afterTest: function(test, context, { error, result, duration, passed, retries }) {
+    // },
 
     /**
      * Hook that gets executed after the suite has ended

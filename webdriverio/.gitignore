@@ -131,5 +131,5 @@ dist
 .pnp.*
 
 # allure results & reports
-allure-results
+_results_
 allure-report
