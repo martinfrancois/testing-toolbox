@@ -1,4 +1,4 @@
-# WebdriverIO
+# Jest
 
 ## Requirements
 
@@ -6,8 +6,7 @@
 
 ## Documentation
 
-- https://webdriver.io/docs/gettingstarted
-- https://webdriver.io/docs/allure-reporter/
+https://jestjs.io/docs/api#2-testeachtablename-fn-timeout
 
 ## How to run
 
