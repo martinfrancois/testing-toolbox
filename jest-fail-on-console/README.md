@@ -1,4 +1,4 @@
-# Jest
+# jest-fail-on-console
 
 ## Requirements
 
@@ -6,7 +6,7 @@
 
 ## Documentation
 
-https://jestjs.io/docs/api#2-testeachtablename-fn-timeout
+https://github.com/ValentinH/jest-fail-on-console
 
 ## How to run
 
