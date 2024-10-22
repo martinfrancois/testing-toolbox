@@ -1,0 +1,180 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OpenExchange API",
+    "description": "A free API to get real-time exchange rates using ISO 4217 currency codes.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://open.er-api.com/v6",
+      "description": "Main API server"
+    }
+  ],
+  "paths": {
+    "/latest/{baseCurrency}": {
+      "get": {
+        "summary": "Get the latest exchange rates",
+        "description": "Returns the latest foreign exchange reference rates for a given base currency in ISO 4217 format.",
+        "parameters": [
+          {
+            "name": "baseCurrency",
+            "in": "path",
+            "required": true,
+            "description": "The base currency for which you want to retrieve exchange rates, using ISO 4217 format (e.g., USD, EUR).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response containing exchange rates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string",
+                      "description": "The result of the request. Will be 'success' for a successful response."
+                    },
+                    "provider": {
+                      "type": "string",
+                      "description": "The provider of the exchange rate data."
+                    },
+                    "documentation": {
+                      "type": "string",
+                      "description": "The URL to the API documentation."
+                    },
+                    "terms_of_use": {
+                      "type": "string",
+                      "description": "The URL to the terms of use for the API."
+                    },
+                    "time_last_update_unix": {
+                      "type": "integer",
+                      "description": "The last time the exchange rate data was updated, in UNIX timestamp format."
+                    },
+                    "time_last_update_utc": {
+                      "type": "string",
+                      "description": "The last time the exchange rate data was updated, in UTC format."
+                    },
+                    "time_next_update_unix": {
+                      "type": "integer",
+                      "description": "The next scheduled time for updating exchange rate data, in UNIX timestamp format."
+                    },
+                    "time_next_update_utc": {
+                      "type": "string",
+                      "description": "The next scheduled time for updating exchange rate data, in UTC format."
+                    },
+                    "time_eol_unix": {
+                      "type": "integer",
+                      "description": "The expected time of deprecation for the API endpoint, in UNIX timestamp format. If not set, the endpoint is not scheduled for deprecation."
+                    },
+                    "base_code": {
+                      "type": "string",
+                      "description": "The base currency for the exchange rates, using ISO 4217 currency code format."
+                    },
+                    "rates": {
+                      "type": "object",
+                      "description": "A map of currency codes to exchange rates from the base currency.",
+                      "additionalProperties": {
+                        "type": "number",
+                        "description": "The exchange rate from the base currency to the given currency."
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "success": {
+                    "summary": "Example response for a successful request",
+                    "value": {
+                      "result": "success",
+                      "provider": "https://www.exchangerate-api.com",
+                      "documentation": "https://www.exchangerate-api.com/docs/free",
+                      "terms_of_use": "https://www.exchangerate-api.com/terms",
+                      "time_last_update_unix": 1585872397,
+                      "time_last_update_utc": "Fri, 02 Apr 2020 00:06:37 +0000",
+                      "time_next_update_unix": 1585959987,
+                      "time_next_update_utc": "Sat, 03 Apr 2020 00:26:27 +0000",
+                      "time_eol_unix": 0,
+                      "base_code": "USD",
+                      "rates": {
+                        "USD": 1,
+                        "AED": 3.67,
+                        "ARS": 64.51,
+                        "AUD": 1.65,
+                        "CAD": 1.42,
+                        "CHF": 0.97,
+                        "EUR": 0.919
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. The base currency may be missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string",
+                      "description": "Indicates an error."
+                    },
+                    "error-type": {
+                      "type": "string",
+                      "description": "Describes the error type in more detail."
+                    }
+                  }
+                },
+                "examples": {
+                  "invalid_request": {
+                    "summary": "Example response for an invalid request",
+                    "value": {
+                      "result": "error",
+                      "error-type": "invalid_base_currency"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string",
+                      "description": "Indicates an error."
+                    },
+                    "error-type": {
+                      "type": "string",
+                      "description": "Describes the error type."
+                    }
+                  }
+                },
+                "examples": {
+                  "server_error": {
+                    "summary": "Example response for an internal server error",
+                    "value": {
+                      "result": "error",
+                      "error-type": "internal_server_error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {}
+}
