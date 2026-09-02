@@ -1,8 +1,8 @@
-# JUnit 5 with TestContainers and Toxiproxy
+# JUnit 6 with TestContainers and Toxiproxy
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 - Docker
 
 ## Documentation

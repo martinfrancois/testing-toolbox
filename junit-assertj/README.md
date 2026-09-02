@@ -1,8 +1,8 @@
-# JUnit 5 with AssertJ
+# JUnit 6 with AssertJ
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 

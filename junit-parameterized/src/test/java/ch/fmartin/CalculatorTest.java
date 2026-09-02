@@ -20,7 +20,7 @@ class CalculatorTest {
         assertTrue(Calculator.isOdd(number));
     }
 
-    @ParameterizedTest(name = "{index} => {0} + {1} = {2}")
+    @ParameterizedTest(name = "{index} => {0} + {1} = {2}", quoteTextArguments = false)
     @CsvSource({
             "0, 0, 0",
             "0, 1, 1",

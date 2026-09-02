@@ -9,10 +9,17 @@ repositories {
     mavenCentral()
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.11.3"))
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    implementation("net.datafaker:datafaker:2.4.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("net.datafaker:datafaker:2.7.0")
 }
 
 tasks.test {

@@ -7,10 +7,10 @@ https://github.com/alexei-led/pumba
 
 Example application:
 ```bash
-docker run -it --rm --name tryme alpine sh -c "apk add --update iproute2 && ping www.example.com" 
+docker run -it --rm --name tryme alpine:3.24.1 sh -c "apk add --update iproute2 && ping www.example.com"
 ```
 
 Delay network by 3s:
 ```bash
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba netem --duration 1m delay --time 3000 tryme
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.2.1 netem --duration 1m delay --time 3000 tryme
 ```

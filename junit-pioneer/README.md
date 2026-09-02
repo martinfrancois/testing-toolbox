@@ -1,8 +1,8 @@
-# JUnit 5 with JUnit Pioneer Extensions
+# JUnit 6 with JUnit Pioneer Extensions
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 

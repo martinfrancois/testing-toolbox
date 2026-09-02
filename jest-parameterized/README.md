@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- NodeJS v20.11.1
+- Node.js v24 LTS
 
 ## Documentation
 

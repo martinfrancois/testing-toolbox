@@ -9,16 +9,23 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("redis.clients:jedis:5.2.0")
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
 
-    testImplementation(platform("org.junit:junit-bom:5.11.3"))
+dependencies {
+    implementation("redis.clients:jedis:8.0.1")
+
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("org.assertj:assertj-core:3.26.3")
-    testImplementation("org.testcontainers:testcontainers:1.20.2")
-    testImplementation("org.testcontainers:junit-jupiter:1.20.2")
-    testImplementation("com.redis:testcontainers-redis:2.2.2")
-    testImplementation("org.testcontainers:toxiproxy:1.20.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.assertj:assertj-core:3.27.7")
+    testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-toxiproxy")
 }
 
 tasks.test {

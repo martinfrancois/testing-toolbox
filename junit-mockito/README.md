@@ -1,8 +1,8 @@
-# Mockito with JUnit 5
+# Mockito with JUnit 6
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 

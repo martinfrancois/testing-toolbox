@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.toxiproxy.ToxiproxyContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import redis.clients.jedis.Jedis;
@@ -29,13 +29,13 @@ class RedisToxiproxyTest {
     private Proxy proxy;
 
     @Container
-    public GenericContainer<?> redis = new GenericContainer<>("redis:6-alpine")
+    public GenericContainer<?> redis = new GenericContainer<>("redis:8.10.1-alpine")
             .withExposedPorts(6379)
             .withNetwork(network)
             .withNetworkAliases("redis");
 
     @Container
-    public ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.11.0")
+    public ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.12.0")
             .withNetwork(network);
 
     @BeforeEach
