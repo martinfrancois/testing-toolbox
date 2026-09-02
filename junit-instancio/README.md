@@ -1,8 +1,8 @@
-# JUnit 5 with Instancio
+# JUnit 6 with Instancio
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 

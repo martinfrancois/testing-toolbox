@@ -1,8 +1,8 @@
-# JUnit 5 with MockServer
+# JUnit 6 with MockServer
 
 ## Requirements
 
-- Java JDK 21 (only required for this demo - MockServer can be run as a Docker container for independent usage)
+- Java JDK 25 (only required for this demo - MockServer can be run as a Docker container for independent usage)
 
 ## Documentation
 

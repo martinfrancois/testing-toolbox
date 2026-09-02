@@ -1,8 +1,8 @@
-# JUnit 5 with Datafaker
+# JUnit 6 with Datafaker
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 

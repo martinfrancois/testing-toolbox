@@ -1,12 +1,12 @@
-# JUnit 5 Parameterized Tests
+# JUnit 6 Parameterized Tests
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 
-https://junit.org/junit5/docs/current/user-guide/#writing-tests-parameterized-tests
+https://docs.junit.org/current/writing-tests/parameterized-classes-and-tests.html
 
 ## How to run
 

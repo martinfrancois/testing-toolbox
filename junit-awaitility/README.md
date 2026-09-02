@@ -1,8 +1,8 @@
-# JUnit 5 with Awaitility
+# JUnit 6 with Awaitility
 
 ## Requirements
 
-- Java JDK 21
+- Java JDK 25
 
 ## Documentation
 
