@@ -162,3 +162,7 @@ Temporary Items
 
 # all jetbrains files
 .idea
+
+# Python bytecode
+__pycache__/
+*.py[cod]
