@@ -1,0 +1,300 @@
+# Runs every demo the way its README describes, on the Java and Node versions
+# pinned in .tool-versions. Demos that fail on purpose during the talk are
+# listed as expected failures; .github/scripts/check_results.py verifies that
+# exactly those tests fail, for the expected reason, and that everything else
+# passes. The weekly run catches breakage that arrives without a commit:
+# a new Chrome, a changed demo website, a removed container image.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      presentation_report:
+        description: Repeat the random test until Allure marks it flaky with representative history
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java:
+    name: ${{ matrix.demo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        demo:
+          - junit-assertj
+          - junit-awaitility
+          - junit-datafaker
+          - junit-instancio
+          - junit-mockito
+          - junit-mockserver
+          - junit-parameterized
+          - junit-pioneer
+          - junit-testcontainers-toxiproxy
+        include:
+          # Fails on purpose: the repository says "Smit", the test expects "Smith".
+          - demo: junit-assertj
+            expect-fail: 'PersonRepositoryTest\.getPeopleBornIn::Smith'
+          # The cartesian product finds two bugs in PasswordGenerator: the all-false combination
+          # throws, and the other combinations fail at random because nothing guarantees that
+          # every enabled character class shows up in the password.
+          - demo: junit-pioneer
+            expect-fail: 'alpha = false \| numeric = false \| uppercase = false \| symbols = false::IllegalArgumentException'
+            may-fail: 'PasswordGeneratorTest::must contain|to contain at least one'
+    defaults:
+      run:
+        working-directory: ${{ matrix.demo }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          java-version-file: .tool-versions
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Run the tests
+        run: ./gradlew test --continue --console=plain
+        continue-on-error: true
+      - name: Check the results
+        env:
+          CHECK_EXPECT_FAIL: ${{ matrix.expect-fail }}
+          CHECK_MAY_FAIL: ${{ matrix.may-fail }}
+        run: python3 ../.github/scripts/check_results.py --format gradle --path build/test-results/test --title ${{ matrix.demo }}
+
+  jest:
+    name: ${{ matrix.demo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        demo:
+          - jest-fail-on-console
+          - jest-msw
+          - jest-parameterized
+        include:
+          # Fails on purpose: the test calls console.error and jest-fail-on-console reports it.
+          - demo: jest-fail-on-console
+            expect-fail: 'should fail on error::console\.error'
+    defaults:
+      run:
+        working-directory: ${{ matrix.demo }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+          cache-dependency-path: ${{ matrix.demo }}/package-lock.json
+      - run: npm ci
+      - name: Run the tests
+        run: npm test -- --ci --json --outputFile=jest-results.json
+        continue-on-error: true
+      - name: Check the results
+        env:
+          CHECK_EXPECT_FAIL: ${{ matrix.expect-fail }}
+        run: python3 ../.github/scripts/check_results.py --format jest --path jest-results.json --title ${{ matrix.demo }}
+
+  webdriverio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      pages: read
+    defaults:
+      run:
+        working-directory: webdriverio
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+          cache-dependency-path: webdriverio/package-lock.json
+      # allure-commandline is a Java program.
+      - uses: actions/setup-java@v6
+        with:
+          java-version-file: .tool-versions
+      - run: npm ci
+      - name: Restore Allure history
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          previous_run_id=$(gh api "repos/$GH_REPO/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          artifact_url=""
+          if [[ -n "$previous_run_id" ]]; then
+            artifact_url=$(gh api "repos/$GH_REPO/actions/runs/$previous_run_id/artifacts" --jq '[.artifacts[] | select(.name == "allure-report" and .expired == false)][0].archive_download_url // empty')
+          fi
+          if [[ -n "$artifact_url" ]]; then
+            gh api "$artifact_url" > previous-allure-report.zip
+            mkdir previous-allure-report
+            unzip -q previous-allure-report.zip -d previous-allure-report
+          fi
+          mkdir -p allure-report
+          if [[ -d previous-allure-report/history ]]; then
+            cp -R previous-allure-report/history allure-report/
+          else
+            cp -R allure-report-reference/history allure-report/
+          fi
+      - name: Seed presentation history
+        if: ${{ inputs.presentation_report }}
+        env:
+          CHECK_EXPECT_FAIL: 'should login with valid credentials failing'
+          CHECK_MAY_FAIL: 'should login with valid credentials sometimes::Random failure triggered'
+        run: |
+          required_each=3
+          max_attempts=30
+          passes=0
+          failures=0
+          marked_flaky=false
+
+          for attempt in $(seq 1 "$max_attempts"); do
+            ALLURE_BUILD_OFFSET="$attempt" xvfb-run --auto-servernum npm test
+            python3 ../.github/scripts/check_results.py --format allure --path _results_/allure-raw --title "webdriverio history run $attempt"
+
+            flaky_status=$(jq -sr '[.[] | select(.name == "should login with valid credentials sometimes") | .status][0] // empty' _results_/allure-raw/*-result.json)
+            case "$flaky_status" in
+              passed) passes=$((passes + 1)) ;;
+              failed) failures=$((failures + 1)) ;;
+              *) echo "Unexpected flaky test status: $flaky_status" >&2; exit 1 ;;
+            esac
+
+            echo "Flaky history after attempt $attempt: $passes passed, $failures failed"
+            marked_flaky=$(jq -sr '[.[] | select(.name == "should login with valid credentials sometimes") | .flaky][0] // false' allure-report/data/test-cases/*.json)
+            echo "Allure Flaky mark after attempt $attempt: $marked_flaky"
+            if (( passes >= required_each && failures >= required_each )) && [[ "$marked_flaky" == true ]]; then
+              break
+            fi
+          done
+
+          if (( passes < required_each || failures < required_each )) || [[ "$marked_flaky" != true ]]; then
+            echo "Random test did not produce representative history marked Flaky by Allure in $max_attempts attempts" >&2
+            exit 1
+          fi
+      - name: Run the browser tests and build the Allure report
+        if: ${{ ! inputs.presentation_report }}
+        env:
+          ALLURE_BUILD_OFFSET: '0'
+        run: xvfb-run --auto-servernum npm test
+        continue-on-error: true
+      - name: Check the results
+        env:
+          # failing.e2e.ts fails on purpose; flaky.e2e.ts fails on purpose 60% of the time.
+          CHECK_EXPECT_FAIL: 'should login with valid credentials failing'
+          CHECK_MAY_FAIL: 'should login with valid credentials sometimes::Random failure triggered'
+        run: python3 ../.github/scripts/check_results.py --format allure --path _results_/allure-raw --title webdriverio
+      - name: Check the deliberate failure has a playable video
+        run: |
+          video_source=$(jq -r 'select(.name == "should login with valid credentials failing") | (.attachments[]?, .steps[]?.attachments[]?) | select(.type == "video/webm") | .source' _results_/allure-raw/*-result.json | head -n 1)
+          test -n "$video_source"
+          test -s "_results_/allure-raw/$video_source"
+          node_modules/@ffmpeg-installer/linux-x64/ffmpeg -v error -i "_results_/allure-raw/$video_source" -f null -
+      - name: Check the Allure report was generated
+        run: test -f allure-report/index.html
+      - name: Check the presentation report marks the random test as flaky
+        if: ${{ inputs.presentation_report }}
+        run: jq -se '[.[] | select(.name == "should login with valid credentials sometimes")] | any(.flaky == true)' allure-report/data/test-cases/*.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: allure-report
+          path: webdriverio/allure-report
+          if-no-files-found: ignore
+          retention-days: 90
+      - uses: actions/configure-pages@v6
+        if: github.ref == 'refs/heads/main'
+      - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: webdriverio/allure-report
+          retention-days: 90
+
+  pages:
+    name: Publish Allure report
+    if: github.ref == 'refs/heads/main'
+    needs: webdriverio
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+      - name: Add report link to the job summary
+        run: printf '## Allure report\n\n[Open the published report](%s)\n' '${{ steps.deployment.outputs.page_url }}' >> "$GITHUB_STEP_SUMMARY"
+
+  artillery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: artillery
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .tool-versions
+      - name: Install artillery
+        run: npm install -g artillery@latest
+      - name: Start the sample backend
+        run: |
+          npx --yes json-server@latest backend/db.json5 &
+          for _ in $(seq 1 30); do curl -sf http://localhost:3000/posts > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:3000/posts > /dev/null
+      # Same scenarios as the talk with the load phases replaced by one short phase, so the
+      # runner is not the bottleneck. The ensure thresholds in complex.yml are meant to be
+      # breached live, so the exit codes are ignored and the checker looks at the requests
+      # and responses instead.
+      - name: Run simple.yml
+        run: artillery run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
+        continue-on-error: true
+      - name: Run complex.yml
+        run: artillery run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
+        continue-on-error: true
+      - name: Check the results
+        run: |
+          python3 ../.github/scripts/check_results.py --format artillery --path simple-report.json --title 'artillery simple.yml'
+          python3 ../.github/scripts/check_results.py --format artillery --path complex-report.json --title 'artillery complex.yml'
+
+  pumba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      # The README pings www.example.com; here the target is a sibling container so the
+      # check does not depend on ICMP leaving the runner.
+      - name: Delay a container's network by 3 seconds with pumba
+        run: |
+          docker network create chaos
+          docker run -d --name target --network chaos alpine:3.24.1 sleep 600
+          docker run -d --name tryme --network chaos alpine:3.24.1 sh -c "apk add --update iproute2 && ping target"
+          for _ in $(seq 1 30); do docker logs tryme 2>&1 | grep -q 'bytes from' && break; sleep 1; done
+          docker logs tryme 2>&1 | grep -q 'bytes from'
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.2.1 netem --duration 15s delay --time 3000 tryme
+          docker logs tryme > ping.log 2>&1
+          docker rm -f tryme target
+          docker network rm chaos
+      - name: Check that pings were delayed by at least 3 seconds
+        run: |
+          grep -E 'time=[0-9.]+ ms' ping.log | tail -n 20
+          grep -qE 'time=([3-9][0-9]{3}|[1-9][0-9]{4,})(\.[0-9]+)? ms' ping.log
