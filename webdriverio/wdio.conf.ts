@@ -1,3 +1,5 @@
+// wdio-video-reporter publishes declarations but omits them from its package exports.
+// @ts-expect-error TypeScript cannot resolve those declarations until the package fixes its exports.
 import video from 'wdio-video-reporter';
 import {addAttachment} from "@wdio/allure-reporter";
 
@@ -49,7 +51,13 @@ export const config: WebdriverIO.Config = {
     // https://saucelabs.com/platform/platform-configurator
     //
     capabilities: [{
-        browserName: 'chrome'
+        browserName: 'chrome',
+        ...(process.env.WDIO_HEADLESS === 'true' ? {
+            'goog:chromeOptions': {args: ['--headless=new']},
+        } : {}),
+        // wdio-video-reporter 6.2.0 does not await its final BiDi screenshot.
+        // See .docs/research/webdriverio-video-recording.md.
+        'wdio:enforceWebDriverClassic': true,
     }],
 
     //
