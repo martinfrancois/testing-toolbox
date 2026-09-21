@@ -1,0 +1,129 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":rebaseStalePrs"
+  ],
+  "reviewers": [
+    "martinfrancois"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "automergeType": "pr",
+  "ignoreTests": false,
+  "internalChecksFilter": "strict",
+  "minimumReleaseAge": "7 days",
+  "minimumReleaseAgeBehaviour": "timestamp-required",
+  "statusCheckWhen": {
+    "minimumReleaseAge": "never"
+  },
+  "pinDigests": true,
+  "platformAutomerge": false,
+  "rangeStrategy": "pin",
+  "dependencyDashboardApproval": false,
+  "prConcurrentLimit": 0,
+  "branchConcurrentLimit": 0,
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "separateMinorPatch": false,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "security"
+    ],
+    "minimumReleaseAge": null,
+    "schedule": [],
+    "updateNotScheduled": true,
+    "groupName": null,
+    "groupSlug": null
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The Artillery demo has no package.json, so Corepack is told the pnpm version on the command line and no built-in manager reads it.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/",
+        "/^\\.github/scripts/.+\\.sh$/"
+      ],
+      "matchStrings": [
+        "corepack prepare pnpm@(?<currentValue>\\S+) --activate"
+      ],
+      "depNameTemplate": "pnpm",
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Merge eligible non-major updates after checks pass; keep unrelated dependencies separate.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest"
+      ],
+      "automerge": true
+    },
+    {
+      "description": "Every packageManager field and every Corepack command has to name the same pnpm version, so they move in one pull request.",
+      "matchPackageNames": [
+        "pnpm"
+      ],
+      "groupName": "pnpm",
+      "groupSlug": "pnpm"
+    },
+    {
+      "description": "The WebdriverIO packages are released together and declare each other as peers, so updating part of the set breaks the browser demo.",
+      "matchPackageNames": [
+        "@wdio/**",
+        "webdriverio"
+      ],
+      "groupName": "WebdriverIO",
+      "groupSlug": "webdriverio"
+    },
+    {
+      "description": "The Jest demos differ only in the library each one shows, so their shared test tooling stays on one version.",
+      "matchFileNames": [
+        "jest-*/package.json"
+      ],
+      "matchPackageNames": [
+        "@types/jest",
+        "jest",
+        "ts-jest",
+        "typescript"
+      ],
+      "groupName": "Jest toolchain",
+      "groupSlug": "jest-toolchain"
+    },
+    {
+      "description": "Each Java demo carries its own wrapper and all of them have to run on the same Gradle.",
+      "matchManagers": [
+        "gradle-wrapper"
+      ],
+      "groupName": "Gradle wrapper",
+      "groupSlug": "gradle-wrapper"
+    },
+    {
+      "description": "A runtime major in .tool-versions also moves the Gradle toolchain, the README and the lockfiles, which Renovate does not touch, so a human finishes the update.",
+      "matchManagers": [
+        "asdf"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "needs manual sync"
+      ]
+    },
+    {
+      "description": "A major update can change what a demo shows on stage, so it waits for a review.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "major update"
+      ]
+    }
+  ]
+}
