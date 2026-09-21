@@ -556,9 +556,10 @@ pnpm_install() {
     (cd "$repo_root/$demo" && pnpm install "${options[@]}")
 }
 
-# pnpm stops a run while any dependency's build script is unbuilt, and Artillery
-# brings three of them. npm installed all three, so naming them keeps the demo
-# behaving as it did. json-server has no build script and needs none of this.
+# None of Artillery's three install scripts changes what these scenarios do. They
+# are named because pnpm 12.4 fails the install when a build script was skipped,
+# and 12.5 only warns, so the flags can go once the pinned pnpm is past 12.4.
+# json-server has no build script and needs none of this.
 artillery_dlx_options=(
     --allow-build=@playwright/browser-chromium
     --allow-build=protobufjs
@@ -1045,7 +1046,7 @@ find_codex() {
         return
     fi
 
-    local candidate npm_prefix
+    local candidate pnpm_bin
     for candidate in \
         "${HOME}/.local/bin/codex" \
         "${HOME}/.codex/packages/standalone/current/bin/codex" \
@@ -1061,10 +1062,12 @@ find_codex() {
         fi
     done
 
-    if command_exists npm; then
-        npm_prefix="$(npm prefix --global 2>/dev/null || true)"
-        candidate="$npm_prefix/bin/codex"
-        if [[ -n "$npm_prefix" && -x "$candidate" ]]; then
+    # `pnpm bin -g` prints the global bin directory itself, and fails when PNPM_HOME
+    # is unset, which the guard turns into an empty result and the next lookup.
+    if command_exists pnpm; then
+        pnpm_bin="$(pnpm bin -g 2>/dev/null || true)"
+        candidate="$pnpm_bin/codex"
+        if [[ -n "$pnpm_bin" && -x "$candidate" ]]; then
             printf '%s\n' "$candidate"
             return
         fi
