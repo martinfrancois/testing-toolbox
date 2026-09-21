@@ -553,12 +553,19 @@ pnpm_install() {
     (cd "$repo_root/$demo" && pnpm install "${options[@]}")
 }
 
+# pnpm stops a run while any dependency's build script is unbuilt, and Artillery
+# brings three of them. npm installed all three, so naming them keeps the demo
+# behaving as it did. json-server has no build script and needs none of this.
+artillery_dlx_options=(
+    --allow-build=@playwright/browser-chromium
+    --allow-build=protobufjs
+    --allow-build=unix-dgram
+)
+
 run_dlx() {
     # The Artillery demo has no package.json, so its tools are fetched for the run
-    # instead of being installed. A global pnpm install links them without the
-    # hoisted directory that Artillery's own dependencies reach for, and
-    # `artillery run` then dies on a missing protobufjs. `pnpm dlx` takes no
-    # offline flag, so that setting travels through pnpm's config environment.
+    # instead of being installed. `pnpm dlx` takes no offline flag, so that setting
+    # travels through pnpm's config environment.
     if [[ "$offline" == true ]]; then
         npm_config_offline=true pnpm dlx "$@"
     else
@@ -581,7 +588,7 @@ prepare_node_dependencies() {
     done
 
     section "Fetch the Artillery tools"
-    run_dlx artillery@latest --version >/dev/null ||
+    run_dlx "${artillery_dlx_options[@]}" artillery@latest --version >/dev/null ||
         setup_problem "the artillery command is unavailable"
     run_dlx json-server@latest --version >/dev/null ||
         setup_problem "the json-server command is unavailable"
@@ -817,10 +824,10 @@ run_artillery() {
         return
     fi
 
-    (cd "$repo_root/artillery" && run_dlx artillery@latest run \
+    (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
         --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' \
         --output "$simple" simple.yml) >"$simple_log" 2>&1 || true
-    (cd "$repo_root/artillery" && run_dlx artillery@latest run \
+    (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
         --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' \
         --output "$complex" complex.yml) >"$complex_log" 2>&1 || true
     kill "$backend_pid" >/dev/null 2>&1 || true

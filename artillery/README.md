@@ -1,24 +1,36 @@
-# artillery Performance and Load Testing
+# Artillery
 
-## Requirements
+Load and stress testing tool.
 
-- Node.js v24 LTS
+https://www.artillery.io/
 
-## Documentation
+Getting started guide:
 
 https://www.artillery.io/docs/get-started/first-test
 
 ## Installation
 
-pnpm fetches Artillery for the run, so there is nothing to install. With npm:
-
 ```bash
 npm i -g artillery@latest
 ```
 
-## Run
+With pnpm, the three install scripts Artillery depends on have to be named, because pnpm does not
+run a dependency's install script unless it is listed. This needs `pnpm setup` to have put pnpm's
+global bin directory on your PATH:
+
+```bash
+pnpm add -g --allow-build=@playwright/browser-chromium --allow-build=protobufjs \
+  --allow-build=unix-dgram artillery@latest
+```
+
+## Usage
 
 Sample backend: 
+```bash
+npx json-server backend/db.json5
+```
+
+With pnpm:
 ```bash
 pnpm dlx json-server@latest backend/db.json5
 ```
@@ -26,14 +38,11 @@ pnpm dlx json-server@latest backend/db.json5
 Simple load (burst) test:
 
 ```bash
-pnpm dlx artillery@latest run simple.yml
+artillery run simple.yml
 ```
 
 More complex load test:
 
 ```bash
-pnpm dlx artillery@latest run complex.yml
+artillery run complex.yml
 ```
-
-After the npm installation above, drop the `pnpm dlx artillery@latest` prefix and run
-`artillery run simple.yml`.

@@ -276,15 +276,17 @@ jobs:
           pnpm dlx json-server@latest backend/db.json5 &
           for _ in $(seq 1 30); do curl -sf http://localhost:3000/posts > /dev/null && break; sleep 1; done
           curl -sf http://localhost:3000/posts > /dev/null
+      # pnpm refuses to finish while a dependency's build script is unbuilt, and Artillery
+      # brings three. npm ran all three, so naming them keeps the previous behaviour.
       # Same scenarios as the talk with the load phases replaced by one short phase, so the
       # runner is not the bottleneck. The ensure thresholds in complex.yml are meant to be
       # breached live, so the exit codes are ignored and the checker looks at the requests
       # and responses instead.
       - name: Run simple.yml
-        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
+        run: pnpm dlx --allow-build=@playwright/browser-chromium --allow-build=protobufjs --allow-build=unix-dgram artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
         continue-on-error: true
       - name: Run complex.yml
-        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
+        run: pnpm dlx --allow-build=@playwright/browser-chromium --allow-build=protobufjs --allow-build=unix-dgram artillery@latest run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
         continue-on-error: true
       - name: Check the results
         run: |
