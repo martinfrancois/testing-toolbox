@@ -2,6 +2,7 @@
   "name": "testing-toolbox",
   "version": "1.0.0",
   "main": "index.js",
+  "packageManager": "pnpm@12.4.1",
   "scripts": {
     "test": "jest"
   },

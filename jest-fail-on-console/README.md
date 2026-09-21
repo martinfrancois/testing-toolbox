@@ -13,11 +13,15 @@ https://github.com/ValentinH/jest-fail-on-console
 Initial setup:
 
 ```bash
-npm i
+pnpm install
 ```
 
 Run tests:
 
 ```bash
-npm run test
+pnpm run test
 ```
+
+`npm i` and `npm run test` still work without Corepack, but the lockfile here is pnpm's, so npm
+resolves its own versions. After `corepack enable`, npm stops instead with `This project is
+configured to use pnpm`, because `package.json` has a `packageManager` field.

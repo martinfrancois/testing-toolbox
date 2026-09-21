@@ -1,0 +1,10 @@
+# pnpm does not run a dependency's install scripts unless it is listed here.
+# Both Jest scripts belong to its optional native helpers. The file watcher is
+# only used by `jest --watch`, and unrs-resolver falls back to the prebuilt
+# binding that pnpm already installed for this platform. The msw script only
+# copies the browser worker into a directory named by `msw.workerDirectory`,
+# which this demo does not use because it mocks from Node.
+allowBuilds:
+  '@parcel/watcher': false
+  msw: false
+  unrs-resolver: false

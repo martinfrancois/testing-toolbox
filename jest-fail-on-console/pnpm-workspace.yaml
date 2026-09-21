@@ -1,0 +1,7 @@
+# pnpm does not run a dependency's install scripts unless it is listed here.
+# Both scripts belong to Jest's optional native helpers. The file watcher is
+# only used by `jest --watch`, and unrs-resolver falls back to the prebuilt
+# binding that pnpm already installed for this platform.
+allowBuilds:
+  '@parcel/watcher': false
+  unrs-resolver: false

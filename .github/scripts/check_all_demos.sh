@@ -213,6 +213,21 @@ bootstrap_nvm() {
     export TESTING_TOOLBOX_NVM_ACTIVE=true
 }
 
+bootstrap_pnpm() {
+    # The Jest and WebdriverIO demos pin pnpm through their packageManager field, but
+    # the Artillery demo has no package.json, so nothing tells Corepack which version
+    # to run there and it falls back to its own default. Activate the version
+    # .github/workflows/ci.yml prepares.
+    if ! command_exists pnpm; then
+        section "Enable pnpm with Corepack"
+        if ! command_exists corepack || ! corepack enable pnpm || \
+            ! corepack prepare pnpm@12.4.1 --activate; then
+            setup_problem "pnpm is unavailable and Corepack could not enable it"
+            return
+        fi
+    fi
+}
+
 load_sdkman() {
     command_exists sdk && return 0
     local sdkman_dir="${SDKMAN_DIR:-${HOME}/.sdkman}"
@@ -534,37 +549,50 @@ DOCKERFILE
     fi
 }
 
-npm_ci() {
+pnpm_install() {
     local demo="$1"
-    local mode="--prefer-online"
-    [[ "$offline" == true ]] && mode="--offline"
-    (cd "$repo_root/$demo" && npm ci "$mode")
+    local options=(--frozen-lockfile)
+    [[ "$offline" == true ]] && options+=(--offline)
+    (cd "$repo_root/$demo" && pnpm install "${options[@]}")
+}
+
+# pnpm stops a run while any dependency's build script is unbuilt, and Artillery
+# brings three of them. npm installed all three, so naming them keeps the demo
+# behaving as it did. json-server has no build script and needs none of this.
+artillery_dlx_options=(
+    --allow-build=@playwright/browser-chromium
+    --allow-build=protobufjs
+    --allow-build=unix-dgram
+)
+
+run_dlx() {
+    # The Artillery demo has no package.json, so its tools are fetched for the run
+    # instead of being installed. Offline, pnpm takes them from the local store and
+    # fails when they were never cached.
+    local options=()
+    [[ "$offline" == true ]] && options+=(--offline)
+    pnpm dlx "${options[@]}" "$@"
 }
 
 prepare_node_dependencies() {
-    command_exists npm || return
+    command_exists pnpm || return
     local demo
     for demo in jest-fail-on-console jest-msw jest-parameterized webdriverio; do
         section "Install $demo dependencies"
-        if ! npm_ci "$demo"; then
+        if ! pnpm_install "$demo"; then
             if [[ "$offline" == true ]]; then
-                setup_problem "$demo dependencies could not be installed from the local npm cache"
+                setup_problem "$demo dependencies could not be installed from the local pnpm store"
             else
                 setup_problem "$demo dependencies could not be installed"
             fi
         fi
     done
 
-    section "Install Artillery tools"
-    local mode="--prefer-online"
-    [[ "$offline" == true ]] && mode="--offline"
-    if [[ "$offline" == true ]] && command_exists artillery && command_exists json-server; then
-        printf 'Using cached Artillery and json-server installations.\n'
-    elif ! npm install --global "$mode" artillery@latest json-server@latest; then
-        setup_problem "Artillery and json-server could not be installed"
-    fi
-    command_exists artillery || setup_problem "the artillery command is unavailable"
-    command_exists json-server || setup_problem "the json-server command is unavailable"
+    section "Fetch the Artillery tools"
+    run_dlx "${artillery_dlx_options[@]}" artillery@latest --version >/dev/null ||
+        setup_problem "the artillery command is unavailable"
+    run_dlx json-server@latest --version >/dev/null ||
+        setup_problem "the json-server command is unavailable"
 }
 
 run_java_demo() {
@@ -589,12 +617,12 @@ run_java_demo() {
 
 run_jest_demo() {
     local demo="$1" expect_fail="${2:-}"
-    if ! command_exists npm || ! command_exists python3; then
-        reason "npm or python3 is unavailable"
+    if ! command_exists pnpm || ! command_exists python3; then
+        reason "pnpm or python3 is unavailable"
         return
     fi
     local result="$temp_root/$demo-results.json"
-    (cd "$repo_root/$demo" && npm test -- --ci --json --outputFile="$result") || true
+    (cd "$repo_root/$demo" && pnpm test --ci --json --outputFile="$result") || true
     CHECK_EXPECT_FAIL="$expect_fail" python3 "$checker" --format jest \
         --path "$result" --title "$demo" || \
         reason "the Jest results did not match the demo's expected behavior"
@@ -687,8 +715,8 @@ run_webdriverio() {
         printf 'Offline report: %s\n' "$report"
         return 0
     fi
-    if ! command_exists npm || ! command_exists java || ! command_exists python3; then
-        reason "npm, Java, or python3 is unavailable"
+    if ! command_exists pnpm || ! command_exists java || ! command_exists python3; then
+        reason "pnpm, Java, or python3 is unavailable"
         return
     fi
 
@@ -709,7 +737,7 @@ run_webdriverio() {
         printf '\nWebDriverIO history run %s of at most %s\n' "$attempt" "$max_attempts"
         run_log="$temp_root/webdriverio-$attempt.log"
         (cd "$repo_root/webdriverio" && \
-            WDIO_HEADLESS="$headless" ALLURE_BUILD_OFFSET="$attempt" npm test) \
+            WDIO_HEADLESS="$headless" ALLURE_BUILD_OFFSET="$attempt" pnpm test) \
             >"$run_log" 2>&1 || true
         if ! CHECK_EXPECT_FAIL='should login with valid credentials failing' \
             CHECK_MAY_FAIL='should login with valid credentials sometimes::Random failure triggered' \
@@ -756,7 +784,11 @@ run_webdriverio() {
         reason "the deliberate WebDriverIO failure has no video attachment"
         return
     fi
-    ffmpeg="$(find "$repo_root/webdriverio/node_modules/@ffmpeg-installer" -type f -name ffmpeg -perm -u+x 2>/dev/null | head -n 1)"
+    # ffmpeg belongs to the video reporter, so let Node resolve it instead of
+    # guessing a path inside node_modules.
+    ffmpeg="$(cd "$repo_root/webdriverio" && node -e \
+        "const {createRequire} = require('node:module'); console.log(createRequire(require.resolve('wdio-video-reporter'))('@ffmpeg-installer/ffmpeg').path)" \
+        2>/dev/null)"
     if [[ -z "$ffmpeg" ]] || ! "$ffmpeg" -v error \
         -i "$repo_root/webdriverio/_results_/allure-raw/$video_source" -f null -; then
         reason "the deliberate failure's video is not playable"
@@ -774,10 +806,17 @@ wait_for_backend() {
     return 1
 }
 
+stop_backend() {
+    local pid="$1"
+    # pnpm dlx runs json-server as a grandchild, so signalling the launched command
+    # alone leaves the server holding port 3000 for the next run.
+    kill -- "-$pid" >/dev/null 2>&1 || true
+    wait "$pid" >/dev/null 2>&1 || true
+}
+
 run_artillery() {
-    if ! command_exists artillery || ! command_exists json-server || \
-        ! command_exists curl || ! command_exists python3; then
-        reason "artillery, json-server, curl, or python3 is unavailable"
+    if ! command_exists pnpm || ! command_exists curl || ! command_exists python3; then
+        reason "pnpm, curl, or python3 is unavailable"
         return
     fi
     local backend_log="$temp_root/json-server.log"
@@ -785,23 +824,25 @@ run_artillery() {
     local complex="$temp_root/artillery-complex.json"
     local simple_log="$temp_root/artillery-simple.log"
     local complex_log="$temp_root/artillery-complex.log"
-    json-server "$repo_root/artillery/backend/db.json5" >"$backend_log" 2>&1 &
+    # Job control puts the backend in a process group of its own, which is what
+    # stop_backend signals.
+    set -m
+    run_dlx json-server@latest "$repo_root/artillery/backend/db.json5" >"$backend_log" 2>&1 &
     local backend_pid=$!
+    set +m
     if ! wait_for_backend; then
-        kill "$backend_pid" >/dev/null 2>&1 || true
-        wait "$backend_pid" >/dev/null 2>&1 || true
+        stop_backend "$backend_pid"
         reason "json-server did not start; see $backend_log while the script is running"
         return
     fi
 
-    (cd "$repo_root/artillery" && artillery run \
+    (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
         --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' \
         --output "$simple" simple.yml) >"$simple_log" 2>&1 || true
-    (cd "$repo_root/artillery" && artillery run \
+    (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
         --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' \
         --output "$complex" complex.yml) >"$complex_log" 2>&1 || true
-    kill "$backend_pid" >/dev/null 2>&1 || true
-    wait "$backend_pid" >/dev/null 2>&1 || true
+    stop_backend "$backend_pid"
 
     local ok=true
     if ! python3 "$checker" --format artillery --path "$simple" \
@@ -1111,6 +1152,7 @@ main() {
     bootstrap_nvm
     bootstrap_sdkman
     bootstrap_mise
+    bootstrap_pnpm
     before_status="$(git status --porcelain=v1 --untracked-files=all)"
     record "Visible root directories are runnable demos" check_root_layout
     check_runtimes
@@ -1150,9 +1192,9 @@ main() {
     if [[ ${#setup_problems[@]} -eq 0 && ${#failed[@]} -eq 0 ]]; then
         printf '\nAll demos are prepared and checked.\n'
         if [[ -s "$repo_root/webdriverio/allure-report/index.html" ]]; then
-            printf 'Before the talk, run (cd webdriverio && npm run report) and leave the report open.\n'
+            printf 'Before the talk, run (cd webdriverio && pnpm run report) and leave the report open.\n'
         else
-            printf 'Before the talk, run (cd webdriverio && npm run report -- allure-report-reference) and leave the report open.\n'
+            printf 'Before the talk, run (cd webdriverio && pnpm run report allure-report-reference) and leave the report open.\n'
         fi
         return 0
     fi
