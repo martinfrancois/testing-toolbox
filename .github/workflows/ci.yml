@@ -281,8 +281,12 @@ jobs:
       # breached live, so the exit codes are ignored and the checker looks at the requests
       # and responses instead.
       - name: Run simple.yml
-        # pnpm refuses to finish while a dependency's build script is unbuilt, and Artillery
-        # brings three. npm ran all three, so naming them keeps the previous behaviour.
+        # The scenarios are plain HTTP, so none of the three install scripts changes the
+        # result: the Chromium download only serves Playwright scenarios, unix-dgram is
+        # loaded only by the statsd transport for Unix sockets, and the protobufjs script
+        # only prints a version warning. They are named because pnpm 12.4 fails the install
+        # with ERR_PNPM_IGNORED_BUILDS when a build script was skipped. 12.5 warns instead,
+        # so the flags can go once the pinned pnpm is past 12.4.
         run: pnpm dlx --allow-build=@playwright/browser-chromium --allow-build=protobufjs --allow-build=unix-dgram artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
         continue-on-error: true
       - name: Run complex.yml
