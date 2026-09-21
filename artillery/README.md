@@ -10,6 +10,8 @@ https://www.artillery.io/docs/get-started/first-test
 
 ## Installation
 
+pnpm fetches Artillery for the run, so there is nothing to install. With npm:
+
 ```bash
 npm i -g artillery@latest
 ```
@@ -18,17 +20,20 @@ npm i -g artillery@latest
 
 Sample backend: 
 ```bash
-npx json-server backend/db.json5
+pnpm dlx json-server@latest backend/db.json5
 ```
 
 Simple load (burst) test:
 
 ```bash
-artillery run simple.yml
+pnpm dlx artillery@latest run simple.yml
 ```
 
 More complex load test:
 
 ```bash
-artillery run complex.yml
+pnpm dlx artillery@latest run complex.yml
 ```
+
+After the npm installation above, drop the `pnpm dlx artillery@latest` prefix and run
+`artillery run simple.yml`.

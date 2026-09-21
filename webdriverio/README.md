@@ -16,27 +16,30 @@
 Initial setup:
 
 ```bash
-npm i
+pnpm install
 ```
 
 Run tests:
 
 ```bash
-npm run test
+pnpm run test
 ```
 
 Open report:
 
 ```bash
-npm run report
+pnpm run report
 ```
 
 Example report is available in the `allure-report-reference` folder.
 Open that checked-in fallback without running the tests:
 
 ```bash
-npm run report -- allure-report-reference
+pnpm run report allure-report-reference
 ```
+
+`npm i` still installs the dependencies, but the `test` script chains the other scripts through
+pnpm, so run this demo with pnpm.
 
 ## CI report
 

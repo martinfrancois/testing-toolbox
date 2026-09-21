@@ -1,11 +1,13 @@
 {
   "name": "webdriverio",
   "type": "module",
+  "packageManager": "pnpm@12.4.1",
   "devDependencies": {
     "@testing-library/webdriverio": "3.2.1",
     "@types/jasmine": "6.0.0",
     "@wdio/allure-reporter": "^9.31.4",
     "@wdio/cli": "9.31.5",
+    "@wdio/globals": "9.31.3",
     "@wdio/jasmine-framework": "9.31.5",
     "@wdio/local-runner": "9.31.5",
     "@wdio/spec-reporter": "9.31.2",
@@ -18,7 +20,7 @@
     "webdriverio": "9.31.5"
   },
   "scripts": {
-    "test": "npm run clean:allure-results && npm run test:without-report ; npm run copy:allure-history ; npm run generate:allure-report",
+    "test": "pnpm run clean:allure-results && pnpm run test:without-report ; pnpm run copy:allure-history ; pnpm run generate:allure-report",
     "report": "allure open",
     "test:without-report": "wdio run ./wdio.conf.ts",
     "clean:allure-results": "rimraf _results_/allure-raw",

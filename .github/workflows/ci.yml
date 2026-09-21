@@ -94,14 +94,18 @@ jobs:
         working-directory: ${{ matrix.demo }}
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          package_json_file: ${{ matrix.demo }}/package.json
+          run_install: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .tool-versions
-          cache: npm
-          cache-dependency-path: ${{ matrix.demo }}/package-lock.json
-      - run: npm ci
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.demo }}/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
       - name: Run the tests
-        run: npm test -- --ci --json --outputFile=jest-results.json
+        run: pnpm test --ci --json --outputFile=jest-results.json
         continue-on-error: true
       - name: Check the results
         env:
@@ -120,16 +124,20 @@ jobs:
         working-directory: webdriverio
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          package_json_file: webdriverio/package.json
+          run_install: false
       - uses: actions/setup-node@v7
         with:
           node-version-file: .tool-versions
-          cache: npm
-          cache-dependency-path: webdriverio/package-lock.json
+          cache: pnpm
+          cache-dependency-path: webdriverio/pnpm-lock.yaml
       # allure-commandline is a Java program.
       - uses: actions/setup-java@v6
         with:
           java-version-file: .tool-versions
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       - name: Restore Allure history
         env:
           GH_TOKEN: ${{ github.token }}
@@ -164,7 +172,7 @@ jobs:
           marked_flaky=false
 
           for attempt in $(seq 1 "$max_attempts"); do
-            ALLURE_BUILD_OFFSET="$attempt" xvfb-run --auto-servernum npm test
+            ALLURE_BUILD_OFFSET="$attempt" xvfb-run --auto-servernum pnpm test
             python3 ../.github/scripts/check_results.py --format allure --path _results_/allure-raw --title "webdriverio history run $attempt"
 
             flaky_status=$(jq -sr '[.[] | select(.name == "should login with valid credentials sometimes") | .status][0] // empty' _results_/allure-raw/*-result.json)
@@ -190,7 +198,7 @@ jobs:
         if: ${{ ! inputs.presentation_report }}
         env:
           ALLURE_BUILD_OFFSET: '0'
-        run: xvfb-run --auto-servernum npm test
+        run: xvfb-run --auto-servernum pnpm test
         continue-on-error: true
       - name: Check the results
         env:
@@ -203,7 +211,10 @@ jobs:
           video_source=$(jq -r 'select(.name == "should login with valid credentials failing") | (.attachments[]?, .steps[]?.attachments[]?) | select(.type == "video/webm") | .source' _results_/allure-raw/*-result.json | head -n 1)
           test -n "$video_source"
           test -s "_results_/allure-raw/$video_source"
-          node_modules/@ffmpeg-installer/linux-x64/ffmpeg -v error -i "_results_/allure-raw/$video_source" -f null -
+          # ffmpeg belongs to the video reporter, so let Node resolve it instead of
+          # guessing a path inside node_modules.
+          ffmpeg=$(node -e "const {createRequire} = require('node:module'); console.log(createRequire(require.resolve('wdio-video-reporter'))('@ffmpeg-installer/ffmpeg').path)")
+          "$ffmpeg" -v error -i "_results_/allure-raw/$video_source" -f null -
       - name: Check the Allure report was generated
         run: test -f allure-report/index.html
       - name: Check the presentation report marks the random test as flaky
@@ -254,11 +265,15 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .tool-versions
-      - name: Install artillery
-        run: npm install -g artillery@latest
+      # The artillery demo has no package.json, so there is no packageManager
+      # field for pnpm/action-setup to read.
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.4.1 --activate
       - name: Start the sample backend
         run: |
-          npx --yes json-server@latest backend/db.json5 &
+          pnpm dlx json-server@latest backend/db.json5 &
           for _ in $(seq 1 30); do curl -sf http://localhost:3000/posts > /dev/null && break; sleep 1; done
           curl -sf http://localhost:3000/posts > /dev/null
       # Same scenarios as the talk with the load phases replaced by one short phase, so the
@@ -266,10 +281,10 @@ jobs:
       # breached live, so the exit codes are ignored and the checker looks at the requests
       # and responses instead.
       - name: Run simple.yml
-        run: artillery run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
+        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
         continue-on-error: true
       - name: Run complex.yml
-        run: artillery run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
+        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
         continue-on-error: true
       - name: Check the results
         run: |

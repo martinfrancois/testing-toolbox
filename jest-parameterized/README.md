@@ -13,11 +13,14 @@ https://jestjs.io/docs/api#2-testeachtablename-fn-timeout
 Initial setup:
 
 ```bash
-npm i
+pnpm install
 ```
 
 Run tests:
 
 ```bash
-npm run test
+pnpm run test
 ```
+
+`npm i` and `npm run test` still work, but the lockfile here is pnpm's, so npm resolves its own
+versions.

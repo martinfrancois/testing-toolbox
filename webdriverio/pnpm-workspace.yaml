@@ -1,0 +1,14 @@
+# pnpm does not run a dependency's install scripts unless it is listed here.
+# The video reporter spawns the ffmpeg binary, and the install script of the
+# matching platform package is the chmod that makes it executable, so it has to
+# run wherever the demo is presented. The browser drivers download Edge and
+# Firefox, which this demo never starts, and esbuild finds its own prebuilt
+# binary without its postinstall.
+allowBuilds:
+  '@ffmpeg-installer/darwin-arm64': true
+  '@ffmpeg-installer/darwin-x64': true
+  '@ffmpeg-installer/linux-arm64': true
+  '@ffmpeg-installer/linux-x64': true
+  edgedriver: false
+  esbuild: false
+  geckodriver: false
