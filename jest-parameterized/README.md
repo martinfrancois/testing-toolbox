@@ -22,5 +22,6 @@ Run tests:
 pnpm run test
 ```
 
-`npm i` and `npm run test` still work, but the lockfile here is pnpm's, so npm resolves its own
-versions.
+`npm i` and `npm run test` still work without Corepack, but the lockfile here is pnpm's, so npm
+resolves its own versions. After `corepack enable`, npm stops instead with `This project is
+configured to use pnpm`, because `package.json` has a `packageManager` field.

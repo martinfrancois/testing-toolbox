@@ -1,10 +1,10 @@
-# Artillery
+# artillery Performance and Load Testing
 
-Load and stress testing tool.
+## Requirements
 
-https://www.artillery.io/
+- Node.js v24 LTS
 
-Getting started guide:
+## Documentation
 
 https://www.artillery.io/docs/get-started/first-test
 
@@ -23,7 +23,7 @@ pnpm add -g --allow-build=@playwright/browser-chromium --allow-build=protobufjs 
   --allow-build=unix-dgram artillery@latest
 ```
 
-## Usage
+## Run
 
 Sample backend: 
 ```bash

@@ -38,8 +38,10 @@ Open that checked-in fallback without running the tests:
 pnpm run report allure-report-reference
 ```
 
-`npm i` still installs the dependencies, but the `test` script chains the other scripts through
-pnpm, so run this demo with pnpm.
+`npm i` still installs the dependencies without Corepack, but the lockfile here is pnpm's, so npm
+resolves its own versions, and the `test` script chains the other scripts through pnpm, so run this
+demo with pnpm. After `corepack enable`, npm stops instead with `This project is configured to use
+pnpm`, because `package.json` has a `packageManager` field.
 
 ## CI report
 

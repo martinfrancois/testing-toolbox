@@ -214,11 +214,14 @@ bootstrap_nvm() {
 }
 
 bootstrap_pnpm() {
-    # Node ships npm, and every Node demo now pins pnpm through its packageManager
-    # field, so Corepack has to hand the pinned version over first.
+    # The Jest and WebdriverIO demos pin pnpm through their packageManager field, but
+    # the Artillery demo has no package.json, so nothing tells Corepack which version
+    # to run there and it falls back to its own default. Activate the version
+    # .github/workflows/ci.yml prepares.
     if ! command_exists pnpm; then
         section "Enable pnpm with Corepack"
-        if ! command_exists corepack || ! corepack enable pnpm; then
+        if ! command_exists corepack || ! corepack enable pnpm || \
+            ! corepack prepare pnpm@12.4.1 --activate; then
             setup_problem "pnpm is unavailable and Corepack could not enable it"
             return
         fi
@@ -564,13 +567,11 @@ artillery_dlx_options=(
 
 run_dlx() {
     # The Artillery demo has no package.json, so its tools are fetched for the run
-    # instead of being installed. `pnpm dlx` takes no offline flag, so that setting
-    # travels through pnpm's config environment.
-    if [[ "$offline" == true ]]; then
-        npm_config_offline=true pnpm dlx "$@"
-    else
-        pnpm dlx "$@"
-    fi
+    # instead of being installed. Offline, pnpm takes them from the local store and
+    # fails when they were never cached.
+    local options=()
+    [[ "$offline" == true ]] && options+=(--offline)
+    pnpm dlx "${options[@]}" "$@"
 }
 
 prepare_node_dependencies() {
@@ -805,6 +806,14 @@ wait_for_backend() {
     return 1
 }
 
+stop_backend() {
+    local pid="$1"
+    # pnpm dlx runs json-server as a grandchild, so signalling the launched command
+    # alone leaves the server holding port 3000 for the next run.
+    kill -- "-$pid" >/dev/null 2>&1 || true
+    wait "$pid" >/dev/null 2>&1 || true
+}
+
 run_artillery() {
     if ! command_exists pnpm || ! command_exists curl || ! command_exists python3; then
         reason "pnpm, curl, or python3 is unavailable"
@@ -815,11 +824,14 @@ run_artillery() {
     local complex="$temp_root/artillery-complex.json"
     local simple_log="$temp_root/artillery-simple.log"
     local complex_log="$temp_root/artillery-complex.log"
+    # Job control puts the backend in a process group of its own, which is what
+    # stop_backend signals.
+    set -m
     run_dlx json-server@latest "$repo_root/artillery/backend/db.json5" >"$backend_log" 2>&1 &
     local backend_pid=$!
+    set +m
     if ! wait_for_backend; then
-        kill "$backend_pid" >/dev/null 2>&1 || true
-        wait "$backend_pid" >/dev/null 2>&1 || true
+        stop_backend "$backend_pid"
         reason "json-server did not start; see $backend_log while the script is running"
         return
     fi
@@ -830,8 +842,7 @@ run_artillery() {
     (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
         --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' \
         --output "$complex" complex.yml) >"$complex_log" 2>&1 || true
-    kill "$backend_pid" >/dev/null 2>&1 || true
-    wait "$backend_pid" >/dev/null 2>&1 || true
+    stop_backend "$backend_pid"
 
     local ok=true
     if ! python3 "$checker" --format artillery --path "$simple" \

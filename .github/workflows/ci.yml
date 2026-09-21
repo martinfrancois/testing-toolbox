@@ -94,7 +94,7 @@ jobs:
         working-directory: ${{ matrix.demo }}
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: ${{ matrix.demo }}/package.json
           run_install: false
@@ -124,7 +124,7 @@ jobs:
         working-directory: webdriverio
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: webdriverio/package.json
           run_install: false
@@ -276,13 +276,13 @@ jobs:
           pnpm dlx json-server@latest backend/db.json5 &
           for _ in $(seq 1 30); do curl -sf http://localhost:3000/posts > /dev/null && break; sleep 1; done
           curl -sf http://localhost:3000/posts > /dev/null
-      # pnpm refuses to finish while a dependency's build script is unbuilt, and Artillery
-      # brings three. npm ran all three, so naming them keeps the previous behaviour.
       # Same scenarios as the talk with the load phases replaced by one short phase, so the
       # runner is not the bottleneck. The ensure thresholds in complex.yml are meant to be
       # breached live, so the exit codes are ignored and the checker looks at the requests
       # and responses instead.
       - name: Run simple.yml
+        # pnpm refuses to finish while a dependency's build script is unbuilt, and Artillery
+        # brings three. npm ran all three, so naming them keeps the previous behaviour.
         run: pnpm dlx --allow-build=@playwright/browser-chromium --allow-build=protobufjs --allow-build=unix-dgram artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
         continue-on-error: true
       - name: Run complex.yml
