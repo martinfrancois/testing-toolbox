@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        demo:
+        demo: &gradle-demos
           - junit-assertj
           - junit-awaitility
           - junit-datafaker
@@ -73,6 +73,35 @@ jobs:
           CHECK_EXPECT_FAIL: ${{ matrix.expect-fail }}
           CHECK_MAY_FAIL: ${{ matrix.may-fail }}
         run: python3 ../.github/scripts/check_results.py --format gradle --path build/test-results/test --title ${{ matrix.demo }}
+
+  # GitHub's dependency graph cannot read build.gradle.kts, so without this the
+  # Java demos get no Dependabot alerts and Renovate has no vulnerability to fix.
+  dependency-submission:
+    name: Submit ${{ matrix.demo }} dependencies
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        demo: *gradle-demos
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version-file: .tool-versions
+      # Each matrix entry submits its own snapshot; the action keys it by the matrix values.
+      - uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          build-root-directory: ${{ matrix.demo }}
+          dependency-graph: generate-and-submit
+          build-scan-publish: true
+          build-scan-terms-of-use-url: https://gradle.com/terms-of-service
+          build-scan-terms-of-use-agree: 'yes'
 
   jest:
     name: ${{ matrix.demo }}
