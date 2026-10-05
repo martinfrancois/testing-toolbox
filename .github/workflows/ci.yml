@@ -78,7 +78,7 @@ jobs:
   # Java demos get no Dependabot alerts and Renovate has no vulnerability to fix.
   dependency-submission:
     name: Submit ${{ matrix.demo }} dependencies
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -98,7 +98,7 @@ jobs:
       - uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           build-root-directory: ${{ matrix.demo }}
-          dependency-graph: ${{ github.event_name == 'pull_request' && 'generate-and-upload' || 'generate-and-submit' }}
+          dependency-graph: generate-and-submit
           build-scan-publish: true
           build-scan-terms-of-use-url: https://gradle.com/terms-of-service
           build-scan-terms-of-use-agree: 'yes'
