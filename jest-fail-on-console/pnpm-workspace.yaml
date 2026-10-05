@@ -5,3 +5,14 @@
 allowBuilds:
   '@parcel/watcher': false
   unrs-resolver: false
+
+# Keeps pnpm-lock.yaml a single YAML document. Without this, pnpm 12 and
+# later start the lockfile with a document that pins only pnpm itself,
+# GitHub's dependency graph reads only that first document, and Dependabot
+# stops seeing every npm package. Remove this line once
+# https://github.com/dependabot/dependabot-core/issues/15904 is fixed and the
+# dependency graph lists the packages from the second document. The cost:
+# pnpm no longer switches itself to the packageManager version in
+# package.json. CI installs that version with pnpm/action-setup, and locally
+# Corepack has to provide it.
+pmOnFail: ignore
