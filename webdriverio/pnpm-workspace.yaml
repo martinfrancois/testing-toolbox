@@ -18,25 +18,6 @@ allowBuilds:
   esbuild: false
   geckodriver: false
 
-# GHSA-c475-qrg2-pj4r (high) and GHSA-5rfr-xx34-2xxv (moderate) are fixed in
-# basic-ftp 6.2.1 and 6.2.2, and no 5.x release carries either fix. @wdio/utils
-# reaches basic-ftp through @puppeteer/browsers, proxy-agent, pac-proxy-agent
-# and get-uri, and get-uri asks for ^5.3.1 even in its newest release. The only
-# break in basic-ftp 6.0, refusing a passive transfer to a host other than the
-# control host, does not touch the calls get-uri makes. Remove this override
-# once the get-uri in this lockfile accepts basic-ftp 6
-# (https://github.com/TooTallNate/proxy-agents/pull/500).
-overrides:
-  'basic-ftp@5': 6.2.2
-
-# basic-ftp 6.2.2 is a security fix (GHSA-5rfr-xx34-2xxv) published on
-# 2026-10-04T08:38:09Z, younger than pnpm's built-in one-day minimumReleaseAge.
-# Without this entry pnpm adds it here by itself on the next install, because
-# that default is not strict. Remove it after 2026-10-05T08:38:09Z, or together
-# with the override above once get-uri accepts basic-ftp 6.
-minimumReleaseAgeExclude:
-  - basic-ftp@6.2.2
-
 # Keeps pnpm-lock.yaml a single YAML document. Without this, pnpm 12 and
 # later start the lockfile with a document that pins only pnpm itself,
 # GitHub's dependency graph reads only that first document, and Dependabot
