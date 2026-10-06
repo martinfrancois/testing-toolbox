@@ -11,9 +11,9 @@
   "description": "",
   "devDependencies": {
     "@types/jest": "30.0.0",
-    "jest": "30.5.1",
+    "jest": "30.5.2",
     "jest-fail-on-console": "^3.3.4",
-    "ts-jest": "29.4.12",
+    "ts-jest": "29.4.14",
     "typescript": "6.0.3"
   }
 }
