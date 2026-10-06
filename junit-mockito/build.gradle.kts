@@ -15,7 +15,7 @@ java {
     }
 }
 
-val mockitoVersion = "5.23.0"
+val mockitoVersion = "5.24.0"
 // Mockito attaches its Java agent at runtime unless it is passed to the JVM up front.
 // JDK 21+ prints a warning for that self-attach and a future JDK will refuse it.
 val mockitoAgent = configurations.create("mockitoAgent")
