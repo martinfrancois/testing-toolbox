@@ -36,8 +36,8 @@ importers:
         specifier: 9.32.0
         version: 9.32.0
       allure-commandline:
-        specifier: 2.43.0
-        version: 2.43.0
+        specifier: 2.46.1
+        version: 2.46.1
       cpy-cli:
         specifier: ^7.0.0
         version: 7.0.0
@@ -752,8 +752,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  allure-commandline@2.43.0:
-    resolution: {integrity: sha512-nsqccDOgi80fi9WjvBapZjlFlugodVWudotNtWx6XKiSI7NuN6oTWEkXnkxQBzNg02Yf9lZLtCFlKvjAlcpu6Q==}
+  allure-commandline@2.46.1:
+    resolution: {integrity: sha512-4HTxbXR9D2+cJV9z4MO/IUa7sfYiLLXBP3/4MWSqC63ey55wBMvXAk83yZYwJ2t+jKU1Z7QW6LgCUx0BhPy9EQ==}
     hasBin: true
 
   allure-js-commons@3.11.1:
@@ -2997,7 +2997,7 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  allure-commandline@2.43.0: {}
+  allure-commandline@2.46.1: {}
 
   allure-js-commons@3.11.1:
     dependencies:
