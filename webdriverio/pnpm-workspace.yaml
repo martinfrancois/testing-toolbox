@@ -18,6 +18,16 @@ allowBuilds:
   esbuild: false
   geckodriver: false
 
+# 10080 minutes = 7 days, the same cooldown as minimumReleaseAge in renovate.json. Renovate
+# does not apply its own setting to lockFileMaintenance, because it hands lockfile regeneration
+# to pnpm, so pnpm enforces the seven days itself on every resolution path.
+minimumReleaseAge: 10080
+
+# false refuses a version whose registry entry has no publish time instead of letting it past
+# the cooldown. It is the counterpart of minimumReleaseAgeBehaviour "timestamp-required" in
+# renovate.json.
+minimumReleaseAgeIgnoreMissingTime: false
+
 # Keeps pnpm-lock.yaml a single YAML document. Without this, pnpm 12 and
 # later start the lockfile with a document that pins only pnpm itself,
 # GitHub's dependency graph reads only that first document, and Dependabot

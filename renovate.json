@@ -54,6 +54,14 @@
       "datasourceTemplate": "npm"
     }
   ],
+  "lockFileMaintenance": {
+    "description": "Rewrite each demo's pnpm-lock.yaml every Friday so transitive dependencies pick up published fixes; ordinary updates and vulnerabilityAlerts only reach packages a package.json names. Renovate does not apply minimumReleaseAge here because pnpm regenerates the lockfiles, so pnpm enforces the same seven days through minimumReleaseAge in each pnpm-workspace.yaml, which is what makes automerge safe. Renovate still waits for every check on the branch.",
+    "enabled": true,
+    "schedule": [
+      "* 0-4 * * 5"
+    ],
+    "automerge": true
+  },
   "packageRules": [
     {
       "description": "Merge eligible non-major updates after checks pass; keep unrelated dependencies separate.",
