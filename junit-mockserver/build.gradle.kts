@@ -23,7 +23,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mock-server:mockserver-junit-jupiter:7.6.0")
-    testImplementation("org.slf4j:slf4j-jdk14:2.0.18")
+    testImplementation("org.slf4j:slf4j-jdk14:2.0.20")
 }
 
 tasks.test {
