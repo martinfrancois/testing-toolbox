@@ -30,4 +30,6 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Testcontainers reaches Docker through JNA, which loads a native library; JDK 24+ warns about that unless native access is granted.
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }

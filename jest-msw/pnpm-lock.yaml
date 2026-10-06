@@ -15,7 +15,7 @@ importers:
         specifier: 30.5.2
         version: 30.5.2(@types/node@26.4.1)(supports-color@8.1.1)
       msw:
-        specifier: ^2.15.0
+        specifier: 2.15.0
         version: 2.15.0(@types/node@26.4.1)(typescript@6.0.3)
       ts-jest:
         specifier: 29.4.14

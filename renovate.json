@@ -83,13 +83,15 @@
       "groupSlug": "pnpm"
     },
     {
-      "description": "The WebdriverIO packages are released together and declare each other as peers, so updating part of the set breaks the browser demo.",
+      "description": "The WebdriverIO packages are released together and declare each other as peers, so updating part of the set breaks the browser demo. @wdio/globals and @wdio/runner also name the expect-webdriverio major they accept, and a new expect-webdriverio major fits only the WebdriverIO release that raises that range, which is often a minor. Majors and minors therefore share one pull request.",
       "matchPackageNames": [
         "@wdio/**",
+        "expect-webdriverio",
         "webdriverio"
       ],
       "groupName": "WebdriverIO",
-      "groupSlug": "webdriverio"
+      "groupSlug": "webdriverio",
+      "separateMajorMinor": false
     },
     {
       "description": "The Jest demos differ only in the library each one shows, so their shared test tooling stays on one version.",
@@ -112,6 +114,25 @@
       ],
       "groupName": "Gradle wrapper",
       "groupSlug": "gradle-wrapper"
+    },
+    {
+      "description": ".tool-versions names only the Java and Node.js majors. The preflight script compares the installed runtimes with that major, and setup-java and setup-node install the newest release of it, so a patch release written there breaks the preflight and goes stale. Renovate replaces the major with the next one instead of pinning it.",
+      "matchManagers": [
+        "asdf"
+      ],
+      "rangeStrategy": "replace"
+    },
+    {
+      "description": "Only a new major belongs in .tool-versions, for the reason the rule above gives. Renovate reads the Java major as an exact version and would offer every Temurin patch release, and a pin would write a Node.js patch release.",
+      "matchManagers": [
+        "asdf"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin"
+      ],
+      "enabled": false
     },
     {
       "description": "A runtime major in .tool-versions also moves the Gradle toolchain, the README and the lockfiles, which Renovate does not touch, so a human finishes the update.",

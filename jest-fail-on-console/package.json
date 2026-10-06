@@ -2,7 +2,7 @@
   "name": "testing-toolbox",
   "version": "1.0.0",
   "main": "index.js",
-  "packageManager": "pnpm@12.4.1",
+  "packageManager": "pnpm@12.8.1",
   "scripts": {
     "test": "jest"
   },
@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/jest": "30.0.0",
     "jest": "30.5.2",
-    "jest-fail-on-console": "^3.3.4",
+    "jest-fail-on-console": "3.3.4",
     "ts-jest": "29.4.14",
     "typescript": "6.0.3"
   }
