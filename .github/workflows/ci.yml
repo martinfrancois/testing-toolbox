@@ -319,16 +319,15 @@ jobs:
       # breached live, so the exit codes are ignored and the checker looks at the requests
       # and responses instead.
       - name: Run simple.yml
-        # The scenarios are plain HTTP, so none of the three install scripts changes the
-        # result: the Chromium download only serves Playwright scenarios, unix-dgram is
-        # loaded only by the statsd transport for Unix sockets, and the protobufjs script
-        # only prints a version warning. They are named because pnpm 12.4 fails the install
-        # with ERR_PNPM_IGNORED_BUILDS when a build script was skipped. 12.5 warns instead,
-        # so the flags can go once the pinned pnpm is past 12.4.
-        run: pnpm dlx --allow-build=@playwright/browser-chromium --allow-build=protobufjs --allow-build=unix-dgram artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
+        # The scenarios are plain HTTP, so none of Artillery's three install scripts
+        # changes the result: the Chromium download only serves Playwright scenarios,
+        # unix-dgram is loaded only by the statsd transport for Unix sockets, and the
+        # protobufjs script only prints a version warning. pnpm skips them and lists them
+        # under "Ignored build scripts".
+        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
         continue-on-error: true
       - name: Run complex.yml
-        run: pnpm dlx --allow-build=@playwright/browser-chromium --allow-build=protobufjs --allow-build=unix-dgram artillery@latest run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
+        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
         continue-on-error: true
       - name: Check the results
         run: |

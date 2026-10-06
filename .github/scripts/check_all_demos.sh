@@ -558,8 +558,10 @@ pnpm_install() {
 
 # None of Artillery's three install scripts changes what these scenarios do. They
 # are named because pnpm 12.4 fails the install when a build script was skipped,
-# and 12.5 only warns, so the flags can go once the pinned pnpm is past 12.4.
-# json-server has no build script and needs none of this.
+# and this script keeps whatever pnpm the machine already has, which can still be
+# 12.4 (Corepack keeps the version an earlier run activated). CI runs the pinned
+# pnpm and leaves the flags out. json-server has no build script and needs none
+# of this.
 artillery_dlx_options=(
     --allow-build=@playwright/browser-chromium
     --allow-build=protobufjs
