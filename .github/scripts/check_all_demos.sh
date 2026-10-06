@@ -678,20 +678,21 @@ import os
 import sys
 
 report = sys.argv[1]
-history_id = None
-marked_flaky = False
+test_case = None
 for path in glob.glob(os.path.join(report, "data", "test-cases", "*.json")):
     with open(path, encoding="utf-8") as handle:
         result = json.load(handle)
     if result.get("name") == "should login with valid credentials sometimes":
-        history_id = result.get("historyId")
-        marked_flaky = result.get("flaky") is True
+        test_case = result
         break
-if not history_id:
+if test_case is None:
     raise SystemExit("the random flaky test is missing from the report")
-with open(os.path.join(report, "history", "history.json"), encoding="utf-8") as handle:
-    history = json.load(handle)
-statuses = [item.get("status") for item in history.get(history_id, {}).get("items", [])]
+marked_flaky = test_case.get("flaky") is True
+# Read the history the test case itself carries. Allure 2.46 leaves its
+# historyId null and keys history.json by a test hash plus a parameter hash,
+# so a lookup by historyId finds nothing.
+history_items = test_case.get("extra", {}).get("history", {}).get("items", [])
+statuses = [item.get("status") for item in history_items]
 passes = statuses.count("passed")
 failures = statuses.count("failed")
 if passes < 3 or failures < 3:
