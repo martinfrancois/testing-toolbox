@@ -22,10 +22,9 @@ Run tests:
 pnpm run test
 ```
 
-The `test` script starts Node with `--experimental-vm-modules`. msw 2.11.3 and newer depend on
-ESM-only packages (`until-async`, `rettime`) that Jest can only load in that mode. `pnpm exec jest`
-on its own fails with `Must use import to load ES Module`, so run the tests through
-`pnpm run test`.
+The `test` script starts Node with `--experimental-vm-modules`. msw 3 is ESM-only, and Jest can
+only load it in that mode. `pnpm exec jest` on its own fails with `Must use import to load ES Module`,
+so run the tests through `pnpm run test`.
 
 msw no longer supports Jest officially and recommends Vitest instead, see
 https://github.com/mswjs/msw/issues/2698.
