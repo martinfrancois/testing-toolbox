@@ -60,11 +60,11 @@ jobs:
       run:
         working-directory: ${{ matrix.demo }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version-file: .tool-versions
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - name: Run the tests
         run: ./gradlew test --continue --console=plain
         continue-on-error: true
@@ -119,12 +119,12 @@ jobs:
       run:
         working-directory: ${{ matrix.demo }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: ${{ matrix.demo }}/package.json
           run_install: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .tool-versions
           cache: pnpm
@@ -153,18 +153,18 @@ jobs:
       run:
         working-directory: webdriverio
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: webdriverio/package.json
           run_install: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .tool-versions
           cache: pnpm
           cache-dependency-path: webdriverio/pnpm-lock.yaml
       # allure-commandline is a Java program.
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version-file: .tool-versions
       - run: pnpm install --frozen-lockfile
@@ -258,16 +258,16 @@ jobs:
       - name: Check the presentation report marks the random test as flaky
         if: ${{ inputs.presentation_report }}
         run: jq -se '[.[] | select(.name == "should login with valid credentials sometimes")] | any(.flaky == true)' allure-report/data/test-cases/*.json
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: allure-report
           path: webdriverio/allure-report
           if-no-files-found: ignore
           retention-days: 90
-      - uses: actions/configure-pages@v6
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         if: github.ref == 'refs/heads/main'
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: github.ref == 'refs/heads/main'
         with:
           path: webdriverio/allure-report
@@ -288,7 +288,7 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
       - name: Add report link to the job summary
         run: printf '## Allure report\n\n[Open the published report](%s)\n' '${{ steps.deployment.outputs.page_url }}' >> "$GITHUB_STEP_SUMMARY"
 
@@ -299,8 +299,8 @@ jobs:
       run:
         working-directory: artillery
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .tool-versions
       # The artillery demo has no package.json, so there is no packageManager
@@ -338,7 +338,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The README pings www.example.com; here the target is a sibling container so the
       # check does not depend on ICMP leaving the runner.
       - name: Delay a container's network by 3 seconds with pumba

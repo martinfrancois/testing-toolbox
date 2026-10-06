@@ -39,19 +39,19 @@ importers:
         specifier: 2.46.1
         version: 2.46.1
       cpy-cli:
-        specifier: ^7.0.0
+        specifier: 7.0.0
         version: 7.0.0
       expect-webdriverio:
         specifier: 6.1.0
         version: 6.1.0(@wdio/globals@9.31.3)(@wdio/logger@9.29.1)(webdriverio@9.32.0(supports-color@7.2.0))
       rimraf:
-        specifier: ^6.1.3
+        specifier: 6.1.3
         version: 6.1.3
       typescript:
         specifier: 7.0.2
         version: 7.0.2
       wdio-video-reporter:
-        specifier: ^6.2.0
+        specifier: 6.2.0
         version: 6.2.0(expect-webdriverio@6.1.0)(webdriverio@9.32.0(supports-color@7.2.0))
       wdio-wait-for:
         specifier: 3.1.1
