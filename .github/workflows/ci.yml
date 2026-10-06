@@ -130,6 +130,10 @@ jobs:
           cache: pnpm
           cache-dependency-path: ${{ matrix.demo }}/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # A frozen install does not resolve anything, so it never reports a package
+      # that an update moved outside the range another package names as its peer.
+      - name: Check peer dependencies
+        run: pnpm peers check
       - name: Run the tests
         run: pnpm test --ci --json --outputFile=jest-results.json
         continue-on-error: true
@@ -164,6 +168,14 @@ jobs:
         with:
           java-version-file: .tool-versions
       - run: pnpm install --frozen-lockfile
+      # A frozen install does not resolve anything, so it never reports a package
+      # that an update moved outside the range another package names as its peer.
+      - name: Check peer dependencies
+        run: pnpm peers check
+      # WebdriverIO strips the types from the specs without checking them, so only
+      # tsc notices when a types package such as @types/jasmine no longer fits.
+      - name: Check the types
+        run: pnpm exec tsc
       - name: Restore Allure history
         env:
           GH_TOKEN: ${{ github.token }}
