@@ -18,8 +18,8 @@ importers:
         specifier: 24.19.0
         version: 24.19.0
       '@wdio/allure-reporter':
-        specifier: 9.31.4
-        version: 9.31.4
+        specifier: 9.32.0
+        version: 9.32.0
       '@wdio/cli':
         specifier: 9.32.0
         version: 9.32.0(@types/node@24.19.0)(expect-webdriverio@6.0.10)(supports-color@7.2.0)
@@ -659,8 +659,8 @@ packages:
   '@vitest/utils@4.1.11':
     resolution: {integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==}
 
-  '@wdio/allure-reporter@9.31.4':
-    resolution: {integrity: sha512-SqDuzDJPL01Iw3stdGPPlDwo4szwTi3ltpkUPSxDE2AwBk5FSzdYAx4QoQ+5ggS7+HMsfbcKmILuPgoHzYDRjQ==}
+  '@wdio/allure-reporter@9.32.0':
+    resolution: {integrity: sha512-GP7H/X2A80YiGhWaK3BBoizv2tcY3czUJWeIrbSNcbydph/zKDrATn7+QTI9qcX9Cm/EecV1H5MzvmEHMfwWFg==}
     engines: {node: '>=18.20.0'}
 
   '@wdio/cli@9.32.0':
@@ -2785,11 +2785,11 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
-  '@wdio/allure-reporter@9.31.4':
+  '@wdio/allure-reporter@9.32.0':
     dependencies:
       '@types/node': 20.19.43
-      '@wdio/reporter': 9.31.2
-      '@wdio/types': 9.31.2
+      '@wdio/reporter': 9.32.0
+      '@wdio/types': 9.32.0
       allure-js-commons: 3.11.1
       csv-stringify: 6.5.1
       html-entities: 2.6.0
@@ -4562,7 +4562,7 @@ snapshots:
   wdio-video-reporter@6.2.0(expect-webdriverio@6.0.10)(webdriverio@9.32.0(supports-color@7.2.0)):
     dependencies:
       '@ffmpeg-installer/ffmpeg': 1.1.0
-      '@wdio/allure-reporter': 9.31.4
+      '@wdio/allure-reporter': 9.32.0
       '@wdio/globals': 9.31.3(expect-webdriverio@6.0.10)(webdriverio@9.32.0(supports-color@7.2.0))
       '@wdio/logger': 9.29.1
       '@wdio/reporter': 9.31.2
