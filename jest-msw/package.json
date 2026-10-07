@@ -4,16 +4,17 @@
   "main": "index.js",
   "packageManager": "pnpm@12.8.1",
   "scripts": {
-    "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js"
+    "test": "tsc --noEmit && node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js"
   },
   "author": "martinfrancois",
   "license": "MIT",
   "description": "",
   "devDependencies": {
     "@types/jest": "30.0.0",
+    "@typescript/native": "npm:typescript@7.0.2",
     "jest": "30.5.2",
     "msw": "3.0.0",
     "ts-jest": "29.4.14",
-    "typescript": "6.0.3"
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }
