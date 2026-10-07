@@ -221,7 +221,7 @@ bootstrap_pnpm() {
     if ! command_exists pnpm; then
         section "Enable pnpm with Corepack"
         if ! command_exists corepack || ! corepack enable pnpm || \
-            ! corepack prepare pnpm@12.8.1 --activate; then
+            ! corepack prepare pnpm@12.8.2 --activate; then
             setup_problem "pnpm is unavailable and Corepack could not enable it"
             return
         fi
