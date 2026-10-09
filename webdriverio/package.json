@@ -5,7 +5,7 @@
   "devDependencies": {
     "@testing-library/webdriverio": "3.2.1",
     "@types/jasmine": "7.0.0",
-    "@types/node": "24.19.0",
+    "@types/node": "24.19.1",
     "@wdio/allure-reporter": "9.32.0",
     "@wdio/cli": "9.32.0",
     "@wdio/globals": "9.31.3",
