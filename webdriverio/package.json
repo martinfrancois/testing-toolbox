@@ -14,7 +14,7 @@
     "@wdio/spec-reporter": "9.32.0",
     "allure-commandline": "2.46.1",
     "cpy-cli": "7.0.0",
-    "expect-webdriverio": "6.1.0",
+    "expect-webdriverio": "7.0.1",
     "rimraf": "6.1.3",
     "typescript": "7.0.2",
     "wdio-video-reporter": "6.2.0",
