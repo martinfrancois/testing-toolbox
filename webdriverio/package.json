@@ -1,7 +1,7 @@
 {
   "name": "webdriverio",
   "type": "module",
-  "packageManager": "pnpm@12.8.2",
+  "packageManager": "pnpm@12.9.0",
   "devDependencies": {
     "@testing-library/webdriverio": "3.2.1",
     "@types/jasmine": "7.0.0",
