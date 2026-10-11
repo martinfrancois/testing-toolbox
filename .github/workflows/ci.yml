@@ -308,7 +308,7 @@ jobs:
       - name: Enable pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@12.9.0 --activate
+          corepack prepare pnpm@12.9.1 --activate
       - name: Start the sample backend
         run: |
           pnpm dlx json-server@latest backend/db.json5 &
