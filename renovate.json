@@ -94,19 +94,26 @@
       "separateMajorMinor": false
     },
     {
-      "description": "The Jest demos differ only in the library each one shows, so their shared test tooling stays on one version. ts-jest needs TypeScript's JavaScript compiler API, which TypeScript 7 does not ship, so each demo installs @typescript/typescript6 under the name typescript for ts-jest and TypeScript 7 as @typescript/native for tsc. matchPackageNames compares the real package name, not the alias, so @typescript/typescript6 is listed on its own.",
+      "description": "The Jest demos differ only in the library each one shows, so their shared test tooling stays on one version.",
       "matchFileNames": [
         "jest-*/package.json"
       ],
       "matchPackageNames": [
+        "@swc/core",
+        "@swc/jest",
         "@types/jest",
-        "@typescript/typescript6",
         "jest",
-        "ts-jest",
         "typescript"
       ],
       "groupName": "Jest toolchain",
       "groupSlug": "jest-toolchain"
+    },
+    {
+      "description": "Skip the @swc/core releases that cannot load their compiler on some machines. From 1.16.12 the native addon unpacks itself into the user cache directory (~/.cache on Linux) on first load, and it refuses that directory when its path contains a symlink, or when a parent directory is owned by another non-root user or is writable by other users without the sticky bit. Before 1.16.18 there is no fallback directory on Linux or macOS, so require('@swc/core') throws 'Failed to load native binding' and Jest runs no test. GitHub's ubuntu runner has none of these paths, so CI passes and the automerge rule above would merge such a version. Upstream fixed it in 1.16.18 (https://github.com/swc-project/swc/issues/12498). The 'Check @swc/core still needs the Renovate skip' step in ci.yml fails once a demo is on 1.16.18 or later; then delete this rule and that step.",
+      "matchPackageNames": [
+        "@swc/core"
+      ],
+      "allowedVersions": "<1.16.12 || >=1.16.18"
     },
     {
       "description": "Each Java demo carries its own wrapper and all of them have to run on the same Gradle.",

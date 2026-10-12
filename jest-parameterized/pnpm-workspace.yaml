@@ -1,9 +1,12 @@
 # pnpm does not run a dependency's install scripts unless it is listed here.
-# Both scripts belong to Jest's optional native helpers. The file watcher is
-# only used by `jest --watch`, and unrs-resolver falls back to the prebuilt
-# binding that pnpm already installed for this platform.
+# The two Jest scripts belong to its optional native helpers. The file watcher
+# is only used by `jest --watch`, and unrs-resolver falls back to the prebuilt
+# binding that pnpm already installed for this platform. @swc/core gets its
+# compiler from the platform-specific optional dependency pnpm installs, so its
+# postinstall script has nothing to add.
 allowBuilds:
   '@parcel/watcher': false
+  '@swc/core': false
   unrs-resolver: false
 
 # 10080 minutes = 7 days, the same cooldown as minimumReleaseAge in renovate.json. Renovate

@@ -1,8 +1,9 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} **/
+/** @type {import('jest').Config} **/
 module.exports = {
   testEnvironment: "node",
   transform: {
-    "^.+.tsx?$": ["ts-jest",{}],
+    // swc removes the types without checking them, so the test script runs tsc --noEmit first.
+    "^.+.tsx?$": ["@swc/jest",{}],
   },
   setupFilesAfterEnv: ["<rootDir>/setupFilesAfterEnv.ts"]
 };
