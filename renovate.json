@@ -94,12 +94,13 @@
       "separateMajorMinor": false
     },
     {
-      "description": "The Jest demos differ only in the library each one shows, so their shared test tooling stays on one version.",
+      "description": "The Jest demos differ only in the library each one shows, so their shared test tooling stays on one version. ts-jest needs TypeScript's JavaScript compiler API, which TypeScript 7 does not ship, so each demo installs @typescript/typescript6 under the name typescript for ts-jest and TypeScript 7 as @typescript/native for tsc. matchPackageNames compares the real package name, not the alias, so @typescript/typescript6 is listed on its own.",
       "matchFileNames": [
         "jest-*/package.json"
       ],
       "matchPackageNames": [
         "@types/jest",
+        "@typescript/typescript6",
         "jest",
         "ts-jest",
         "typescript"

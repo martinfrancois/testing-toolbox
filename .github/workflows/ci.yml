@@ -134,6 +134,22 @@ jobs:
       # that an update moved outside the range another package names as its peer.
       - name: Check peer dependencies
         run: pnpm peers check
+      # Workaround: ts-jest uses TypeScript's JavaScript compiler API, which TypeScript 7
+      # does not ship, so each demo installs TypeScript 6 as typescript for ts-jest and
+      # TypeScript 7 as @typescript/native, whose tsc the test script runs first. This
+      # step fails once a ts-jest update accepts TypeScript 7
+      # (https://github.com/kulshekhar/ts-jest/issues/5366). Then depend on typescript
+      # 7 directly, drop @typescript/native, and remove this step.
+      - name: Check ts-jest still needs TypeScript 6
+        run: |
+          node -e "
+            const tsJest = require('node:module').createRequire(require.resolve('ts-jest'));
+            const {version, peerDependencies} = tsJest('ts-jest/package.json');
+            if (tsJest('semver').intersects('>=7', peerDependencies.typescript)) {
+              console.error('ts-jest ' + version + ' accepts typescript ' + peerDependencies.typescript + ', so the TypeScript 6 alias can go.');
+              process.exit(1);
+            }
+          "
       - name: Run the tests
         run: pnpm test --ci --json --outputFile=jest-results.json
         continue-on-error: true
