@@ -16,7 +16,7 @@ java {
 }
 
 dependencies {
-    implementation("redis.clients:jedis:8.0.1")
+    implementation("redis.clients:jedis:8.0.2")
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
