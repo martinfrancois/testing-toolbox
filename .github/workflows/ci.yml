@@ -134,21 +134,6 @@ jobs:
       # that an update moved outside the range another package names as its peer.
       - name: Check peer dependencies
         run: pnpm peers check
-      # renovate.json skips @swc/core 1.16.12 to 1.16.17, which cannot load on machines
-      # whose cache directory path is unusual (https://github.com/swc-project/swc/issues/12498).
-      # This runner is not one of them, so the tests would pass and Renovate would merge
-      # such a version. This step fails once the demo is on 1.16.18 or later. Then
-      # delete the @swc/core rule from renovate.json and this step.
-      - name: Check @swc/core still needs the Renovate skip
-        run: |
-          node -e "
-            const {version} = require('@swc/core/package.json');
-            const [major, minor, patch] = version.split('.').map(Number);
-            if (major > 1 || (major === 1 && (minor > 16 || (minor === 16 && patch >= 18)))) {
-              console.error('@swc/core ' + version + ' includes the fix, so the @swc/core rule in renovate.json can go.');
-              process.exit(1);
-            }
-          "
       - name: Run the tests
         run: pnpm test --ci --json --outputFile=jest-results.json
         continue-on-error: true

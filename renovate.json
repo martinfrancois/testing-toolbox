@@ -108,13 +108,7 @@
       "groupName": "Jest toolchain",
       "groupSlug": "jest-toolchain"
     },
-    {
-      "description": "Skip the @swc/core releases that cannot load their compiler on some machines. From 1.16.12 the native addon unpacks itself into the user cache directory (~/.cache on Linux) on first load, and it refuses that directory when its path contains a symlink, or when a parent directory is owned by another non-root user or is writable by other users without the sticky bit. Before 1.16.18 there is no fallback directory on Linux or macOS, so require('@swc/core') throws 'Failed to load native binding' and Jest runs no test. GitHub's ubuntu runner has none of these paths, so CI passes and the automerge rule above would merge such a version. Upstream fixed it in 1.16.18 (https://github.com/swc-project/swc/issues/12498). The 'Check @swc/core still needs the Renovate skip' step in ci.yml fails once a demo is on 1.16.18 or later; then delete this rule and that step.",
-      "matchPackageNames": [
-        "@swc/core"
-      ],
-      "allowedVersions": "<1.16.12 || >=1.16.18"
-    },
+
     {
       "description": "Each Java demo carries its own wrapper and all of them have to run on the same Gradle.",
       "matchManagers": [
