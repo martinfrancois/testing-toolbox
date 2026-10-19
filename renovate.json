@@ -5,9 +5,6 @@
     "helpers:pinGitHubActionDigests",
     ":rebaseStalePrs"
   ],
-  "reviewers": [
-    "martinfrancois"
-  ],
   "labels": [
     "dependencies"
   ],
