@@ -201,7 +201,7 @@ def main():
                            parse_expectations(os.environ.get("CHECK_MAY_FAIL")))
     write_summary(args.title or args.path, rows, problems)
     if problems:
-        print("::error::" + "; ".join(problems))
+        print(console_safe("::error::" + "; ".join(problems)))
         return 1
     print(f"OK: {len(results)} result(s) checked")
     return 0
