@@ -163,6 +163,16 @@ def first_line(text):
     return ""
 
 
+def console_safe(text):
+    """Keep rich job summaries while tolerating legacy Windows consoles."""
+    encoding = sys.stdout.encoding or "utf-8"
+    try:
+        text.encode(encoding)
+    except UnicodeEncodeError:
+        return text.encode(encoding, errors="backslashreplace").decode(encoding)
+    return text
+
+
 def write_summary(title, rows, problems):
     lines = [f"### {title}", "", "| Test | Status | Verdict |", "|---|---|---|"]
     for name, status, verdict, ok in rows:
@@ -171,7 +181,7 @@ def write_summary(title, rows, problems):
     if problems:
         lines += ["", "**Problems**", ""] + [f"- {problem}" for problem in problems]
     text = "\n".join(lines) + "\n"
-    print(text)
+    print(console_safe(text))
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as handle:

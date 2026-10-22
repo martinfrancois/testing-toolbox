@@ -350,6 +350,32 @@ run_webdriverio
             self.assertFalse(list(raw.glob("*-result.json")))
 
 
+class CheckResultsTest(unittest.TestCase):
+    def test_cp1252_console_keeps_unicode_job_summary(self):
+        script = Path(__file__).with_name("check_results.py").resolve()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / "artillery.json"
+            report.write_text(json.dumps({"aggregate": {"counters": {
+                "http.requests": 1,
+                "http.codes.200": 1,
+                "vusers.failed": 0,
+            }}}), encoding="utf-8")
+            summary = root / "summary.md"
+            env = os.environ.copy()
+            env["PYTHONIOENCODING"] = "cp1252"
+            env["GITHUB_STEP_SUMMARY"] = str(summary)
+
+            result = subprocess.run([
+                "python3", str(script), "--format", "artillery",
+                "--path", str(report), "--title", "artillery",
+            ], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+
+            self.assertEqual(result.returncode, 0, result.stderr.decode("cp1252"))
+            self.assertIn("OK: 4 result(s) checked", result.stdout.decode("cp1252"))
+            self.assertIn("✅", summary.read_text(encoding="utf-8"))
+
+
 class HistoryTest(unittest.TestCase):
     def test_repeated_legacy_failures_keep_original_mode_and_prior_outcome(self):
         with tempfile.TemporaryDirectory() as directory:
