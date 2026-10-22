@@ -614,13 +614,13 @@ cache_image() {
 prepare_docker_images() {
     docker_ready || return
     section "Cache Docker images"
-    cache_image "alpine:3.24.1" || true
+    cache_image "alpine:3.24.2" || true
     cache_image "gaiaadm/pumba:1.2.1" || true
     cache_image "$pumba_nettools_image" || true
     cache_image "redis:8.10.1-alpine" || true
     cache_image "ghcr.io/shopify/toxiproxy:2.12.0" || true
 
-    local client_image="testing-toolbox/pumba-client:3.24.1"
+    local client_image="testing-toolbox/pumba-client:3.24.2"
     if [[ "$offline" == true ]]; then
         if ! docker image inspect "$client_image" >/dev/null 2>&1; then
             setup_problem "the Pumba client image with iproute2 is not cached"
@@ -628,7 +628,7 @@ prepare_docker_images() {
     else
         docker build --pull --tag "$client_image" - <<'DOCKERFILE' || \
             setup_problem "Docker could not build the Pumba client image"
-FROM alpine:3.24.1
+FROM alpine:3.24.2
 RUN apk add --no-cache iproute2
 DOCKERFILE
     fi
@@ -1103,12 +1103,12 @@ run_pumba() {
         last_reason="Docker could not create the Pumba demo network"
     fi
     if [[ "$ok" == true ]] && ! docker run --pull=never -d --name "$target" \
-        --label "$label" --network "$network_id" alpine:3.24.1 sleep 600; then
+        --label "$label" --network "$network_id" alpine:3.24.2 sleep 600; then
         [[ -n "$last_reason" ]] || last_reason="Docker could not start the Pumba target"
         ok=false
     fi
     if [[ "$ok" == true ]] && docker run --pull=never -d --name "$client" \
-        --label "$label" --network "$network_id" testing-toolbox/pumba-client:3.24.1 ping "$target"; then
+        --label "$label" --network "$network_id" testing-toolbox/pumba-client:3.24.2 ping "$target"; then
         client_created=true
     else
         [[ -n "$last_reason" ]] || last_reason="Docker could not start the Pumba ping client"
