@@ -1,0 +1,9 @@
+(version 1)
+(allow default)
+; Keep demo HTTP servers and the local Docker daemon reachable while blocking
+; external connections from this process and its children. Gradle uses a fresh
+; daemon during this check so an existing unsandboxed daemon cannot bypass it.
+(deny network-outbound)
+(allow network-outbound
+    (remote ip "localhost:*")
+    (remote unix-socket))

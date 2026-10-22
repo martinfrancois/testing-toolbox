@@ -29,6 +29,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  preflight:
+    name: Preflight regression tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: bash -n .github/scripts/check_all_demos.sh
+      - run: python3 .github/scripts/test_preflight.py
+
   java:
     name: ${{ matrix.demo }}
     runs-on: ubuntu-latest
@@ -293,25 +306,38 @@ jobs:
         run: printf '## Allure report\n\n[Open the published report](%s)\n' '${{ steps.deployment.outputs.page_url }}' >> "$GITHUB_STEP_SUMMARY"
 
   artillery:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     defaults:
       run:
         working-directory: artillery
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .tool-versions
-      # The artillery demo has no package.json, so there is no packageManager
-      # field for pnpm/action-setup to read.
-      - name: Enable pnpm
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: webdriverio/package.json
+          run_install: false
+      - run: pnpm setup
+      - run: pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4
+      - name: Check plain commands in Windows PowerShell
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          corepack enable
-          corepack prepare pnpm@12.13.0 --activate
+          artillery --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          json-server --version
+          exit $LASTEXITCODE
       - name: Start the sample backend
         run: |
-          pnpm dlx json-server@latest backend/db.json5 &
+          json-server backend/db.json &
           for _ in $(seq 1 30); do curl -sf http://localhost:3000/posts > /dev/null && break; sleep 1; done
           curl -sf http://localhost:3000/posts > /dev/null
       # Same scenarios as the talk with the load phases replaced by one short phase, so the
@@ -319,20 +345,15 @@ jobs:
       # breached live, so the exit codes are ignored and the checker looks at the requests
       # and responses instead.
       - name: Run simple.yml
-        # The scenarios are plain HTTP, so none of Artillery's three install scripts
-        # changes the result: the Chromium download only serves Playwright scenarios,
-        # unix-dgram is loaded only by the statsd transport for Unix sockets, and the
-        # protobufjs script only prints a version warning. pnpm skips them and lists them
-        # under "Ignored build scripts".
-        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
+        run: artillery run --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' --output simple-report.json simple.yml
         continue-on-error: true
       - name: Run complex.yml
-        run: pnpm dlx artillery@latest run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
+        run: artillery run --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' --output complex-report.json complex.yml
         continue-on-error: true
       - name: Check the results
         run: |
-          python3 ../.github/scripts/check_results.py --format artillery --path simple-report.json --title 'artillery simple.yml'
-          python3 ../.github/scripts/check_results.py --format artillery --path complex-report.json --title 'artillery complex.yml'
+          python ../.github/scripts/check_results.py --format artillery --path simple-report.json --title 'artillery simple.yml'
+          python ../.github/scripts/check_results.py --format artillery --path complex-report.json --title 'artillery complex.yml'
 
   pumba:
     runs-on: ubuntu-latest
@@ -343,15 +364,15 @@ jobs:
       # check does not depend on ICMP leaving the runner.
       - name: Delay a container's network by 3 seconds with pumba
         run: |
-          docker network create chaos
-          docker run -d --name target --network chaos alpine:3.24.1 sleep 600
-          docker run -d --name tryme --network chaos alpine:3.24.1 sh -c "apk add --update iproute2 && ping target"
+          trap './pumba/cleanup.sh ci' EXIT
+          chaos_network=$(docker network create --label testing-toolbox.pumba=ci "toolbox-chaos-$(date +%s)-$$")
+          docker run -d --label testing-toolbox.pumba=ci --name target --network "$chaos_network" alpine:3.24.1 sleep 600
+          docker run -d --label testing-toolbox.pumba=ci --name tryme --network "$chaos_network" alpine:3.24.1 sh -c "apk add --update iproute2 && ping target"
           for _ in $(seq 1 30); do docker logs tryme 2>&1 | grep -q 'bytes from' && break; sleep 1; done
           docker logs tryme 2>&1 | grep -q 'bytes from'
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.2.1 netem --duration 15s delay --time 3000 tryme
+          docker run --rm --label testing-toolbox.pumba=ci -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.2.1 netem --duration 15s delay --time 3000 tryme
           docker logs tryme > ping.log 2>&1
-          docker rm -f tryme target
-          docker network rm chaos
+          ./pumba/cleanup.sh ci
       - name: Check that pings were delayed by at least 3 seconds
         run: |
           grep -E 'time=[0-9.]+ ms' ping.log | tail -n 20

@@ -10,6 +10,8 @@
   ],
   "automergeType": "pr",
   "ignoreTests": false,
+  "ignoreUnstable": true,
+  "ignorePaths": ["**/node_modules/**", "**/bower_components/**", "**/vendor/**", "webdriverio/allure-report-reference/**"],
   "internalChecksFilter": "strict",
   "minimumReleaseAge": "7 days",
   "minimumReleaseAgeBehaviour": "timestamp-required",
@@ -36,21 +38,6 @@
     "groupName": null,
     "groupSlug": null
   },
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "The Artillery demo has no package.json, so Corepack is told the pnpm version on the command line and no built-in manager reads it.",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^\\.github/scripts/.+\\.sh$/"
-      ],
-      "matchStrings": [
-        "corepack prepare pnpm@(?<currentValue>\\S+) --activate"
-      ],
-      "depNameTemplate": "pnpm",
-      "datasourceTemplate": "npm"
-    }
-  ],
   "lockFileMaintenance": {
     "description": "Rewrite each demo's pnpm-lock.yaml every Friday so transitive dependencies pick up published fixes; ordinary updates and vulnerabilityAlerts only reach packages a package.json names. Renovate does not apply minimumReleaseAge here because pnpm regenerates the lockfiles, so pnpm enforces the same seven days through minimumReleaseAge in each pnpm-workspace.yaml, which is what makes automerge safe. Renovate still waits for every check on the branch.",
     "enabled": true,
@@ -59,7 +46,86 @@
     ],
     "automerge": true
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)README\\.md$/",
+        "/^\\.github/scripts/check_all_demos\\.sh$/",
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "(?<depName>artillery|json-server)@(?<currentValue>[0-9][0-9A-Za-z.+-]*)"
+      ],
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)README\\.md$/",
+        "/^\\.github/scripts/.*\\.sh$/",
+        "/^\\.github/workflows/.*\\.ya?ml$/",
+        "/\\.java$/"
+      ],
+      "matchStrings": [
+        "(?<depName>alpine|gaiaadm/pumba|redis|ghcr\\.io/shopify/toxiproxy|ghcr\\.io/alexei-led/pumba-alpine-nettools):(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+[0-9A-Za-z._-]*|latest)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^pumba/README\\.md$/",
+        "/^\\.github/scripts/check_all_demos\\.sh$/"
+      ],
+      "matchStrings": [
+        "testing-toolbox/pumba-client:(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)"
+      ],
+      "depNameTemplate": "alpine",
+      "depTypeTemplate": "local-image",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)README\\.md$/",
+        "/build\\.gradle\\.kts$/"
+      ],
+      "matchStrings": [
+        "(?:- Java |The Java demos need )JDK (?<currentValue>[0-9]+)",
+        "JavaLanguageVersion\\.of\\((?<currentValue>[0-9]+)\\)"
+      ],
+      "depNameTemplate": "java",
+      "datasourceTemplate": "java-version"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)README\\.md$/"
+      ],
+      "matchStrings": [
+        "Node\\.js v?(?<currentValue>[0-9]+)(?: LTS|\\.(?: |\\r?\\n))"
+      ],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "versioningTemplate": "node"
+    }
+  ],
   "packageRules": [
+    {
+      "description": "Only final npm releases are eligible, even if a registry tags a prerelease as latest.",
+      "matchDatasources": ["npm"],
+      "allowedVersions": "!/-/"
+    },
+    {
+      "description": "Global CLI pins in the README, preparation script, and CI do not use the local dependency cooldown.",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["artillery", "json-server"],
+      "minimumReleaseAge": null
+    },
     {
       "description": "Merge eligible non-major updates after checks pass; keep unrelated dependencies separate.",
       "matchUpdateTypes": [
@@ -72,7 +138,7 @@
       "automerge": true
     },
     {
-      "description": "Every packageManager field and every Corepack command has to name the same pnpm version, so they move in one pull request.",
+      "description": "Every packageManager field has to name the same pnpm version, so they move in one pull request.",
       "matchPackageNames": [
         "pnpm"
       ],
@@ -115,16 +181,35 @@
       "groupSlug": "gradle-wrapper"
     },
     {
-      "description": ".tool-versions names only the Java and Node.js majors. The preflight script compares the installed runtimes with that major, and setup-java and setup-node install the newest release of it, so a patch release written there breaks the preflight and goes stale. Renovate replaces the major with the next one instead of pinning it.",
-      "matchManagers": [
-        "asdf"
+      "description": "Update Java runtime requirements and Gradle toolchains together; review LTS eligibility and regenerate lockfiles before merging.",
+      "matchDatasources": [
+        "java-version"
       ],
-      "rangeStrategy": "replace"
+      "groupName": "Java runtime",
+      "rangeStrategy": "replace",
+      "extractVersion": "^(?<version>\\d+)",
+      "automerge": false,
+      "addLabels": [
+        "needs manual sync"
+      ]
     },
     {
-      "description": "Only a new major belongs in .tool-versions, for the reason the rule above gives. Renovate reads the Java major as an exact version and would offer every Temurin patch release, and a pin would write a Node.js patch release.",
-      "matchManagers": [
-        "asdf"
+      "description": "Update Node.js runtime requirements together. Node versioning waits for LTS; review compatibility and regenerate lockfiles before merging.",
+      "matchDatasources": [
+        "node-version"
+      ],
+      "groupName": "Node.js runtime",
+      "rangeStrategy": "replace",
+      "automerge": false,
+      "addLabels": [
+        "needs manual sync"
+      ]
+    },
+    {
+      "description": "Keep runtime declarations at major precision instead of pinning patch releases.",
+      "matchDatasources": [
+        "java-version",
+        "node-version"
       ],
       "matchUpdateTypes": [
         "minor",
@@ -134,14 +219,24 @@
       "enabled": false
     },
     {
-      "description": "A runtime major in .tool-versions also moves the Gradle toolchain, the README and the lockfiles, which Renovate does not touch, so a human finishes the update.",
+      "description": "The local Pumba client tag follows its Alpine base image; it has no registry digest of its own.",
       "matchManagers": [
-        "asdf"
+        "custom.regex"
       ],
-      "automerge": false,
-      "addLabels": [
-        "needs manual sync"
-      ]
+      "matchDepTypes": [
+        "local-image"
+      ],
+      "pinDigests": false
+    },
+    {
+      "description": "Keep the Alpine base, cached client tag, README commands, and CI in one update.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "alpine"
+      ],
+      "groupName": "Alpine images"
     },
     {
       "description": "A major update can change what a demo shows on stage, so it waits for a review.",

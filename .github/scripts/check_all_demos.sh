@@ -9,16 +9,23 @@ set -o pipefail
 script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 checker="$repo_root/.github/scripts/check_results.py"
-pumba_nettools_image="ghcr.io/alexei-led/pumba-alpine-nettools:latest"
+pumba_nettools_image="ghcr.io/alexei-led/pumba-alpine-nettools:latest@sha256:bdcfacdd0c42f64cd280319d6dd5d3911f33425ce4a5168bb1b7de9570b72cd1"
 fix_with_codex=false
 allow_codex_prompt=true
 offline=false
 use_nvm=false
 use_sdkman=false
 codex_bin=""
+original_path="$PATH"
+original_docker_host="${DOCKER_HOST-}"
+original_docker_context="${DOCKER_CONTEXT-}"
+original_socket_override="${TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE-}"
+original_java_home="${JAVA_HOME-}"
+prepared_report_dir=""
 temp_parent=""
 temp_root=""
 diagnostic_root=""
+diagnostic_parent=""
 preflight_log=""
 codex_log=""
 interactive_terminal=false
@@ -68,10 +75,20 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+# --no-codex wins even when both flags are supplied.
+[[ "$allow_codex_prompt" == false ]] && fix_with_codex=false
+
+save_diagnostics() {
+    if [[ -n "$temp_root" && -d "$temp_root" && -n "$diagnostic_root" && -d "$diagnostic_root" ]]; then
+        mkdir -p "$diagnostic_root/checks"
+        cp -R "$temp_root/." "$diagnostic_root/checks/" 2>/dev/null || true
+    fi
+}
 
 cleanup() {
     [[ -n "$temp_parent" && -n "$temp_root" && -d "$temp_root" ]] || return
     [[ "$(dirname "$temp_root")" == "$temp_parent" ]] || return
+    save_diagnostics
     case "$(basename "$temp_root")" in
         testing-toolbox.??????) rm -rf -- "$temp_root" ;;
     esac
@@ -192,7 +209,6 @@ bootstrap_nvm() {
     fi
     command_exists nvm || return
     use_nvm=true
-    [[ "${TESTING_TOOLBOX_NVM_ACTIVE:-false}" == "true" ]] && return
 
     local node_expected
     node_expected="$(expected_node_major)"
@@ -206,25 +222,53 @@ bootstrap_nvm() {
         setup_problem "nvm could not install Node.js $node_expected"
         return
     fi
+    # nvm replaces an existing PATH entry in place. Put its selected bin first
+    # so Homebrew cannot shadow Node, npm, or pnpm in a fresh offline shell.
+    if [[ -n "${NVM_BIN:-}" ]]; then
+        export PATH="$NVM_BIN:$PATH"
+        hash -r
+    fi
     if ! node_is_expected_major; then
         setup_problem "nvm did not activate Node.js $node_expected"
         return
     fi
-    export TESTING_TOOLBOX_NVM_ACTIVE=true
 }
 
 bootstrap_pnpm() {
-    # The Jest and WebdriverIO demos pin pnpm through their packageManager field, but
-    # the Artillery demo has no package.json, so nothing tells Corepack which version
-    # to run there and it falls back to its own default. Activate the version
-    # .github/workflows/ci.yml prepares.
-    if ! command_exists pnpm; then
-        section "Enable pnpm with Corepack"
-        if ! command_exists corepack || ! corepack enable pnpm || \
-            ! corepack prepare pnpm@12.13.0 --activate; then
-            setup_problem "pnpm is unavailable and Corepack could not enable it"
-            return
+    local expected prefix candidate
+    expected="$(node -p "require('./webdriverio/package.json').packageManager.split('@')[1]")"
+    # nvm can leave Homebrew ahead of its existing bin entry in PATH. Select
+    # the CLI installed beside Node before considering an older global launcher.
+    prefix="$(npm prefix --global 2>/dev/null)"
+    for candidate in "$prefix/bin/pnpm" "${PNPM_HOME:-${HOME}/Library/pnpm}/pnpm"; do
+        if [[ -x "$candidate" && "$("$candidate" --version 2>/dev/null)" == "$expected" ]]; then
+            export PATH="$(dirname "$candidate"):$PATH"
+            hash -r
+            break
         fi
+    done
+    if command_exists pnpm && [[ "$(pnpm --version)" == "$expected" ]]; then
+        printf 'Using pnpm %s: %s\n' "$expected" "$(command -v pnpm)"
+        return
+    fi
+    # Older pnpm launchers install pnpm 12 without its native install script and
+    # then spawn its shebang-less fallback directly, which fails with ENOEXEC on
+    # macOS. Install the pinned CLI normally, allowing its native binary installer.
+    if [[ "$offline" == true ]]; then
+        setup_problem "pnpm $expected is not active; reconnect to install the pinned CLI"
+        return
+    fi
+    section "Install pinned pnpm"
+    if ! npm install --global "pnpm@$expected" --allow-scripts=pnpm; then
+        setup_problem "npm could not install pnpm $expected"
+        return
+    fi
+    export PATH="$(npm prefix --global)/bin:$PATH"
+    hash -r
+    if [[ "$(pnpm --version)" != "$expected" ]]; then
+        setup_problem "pnpm $expected could not be activated"
+    else
+        printf 'Using pnpm %s: %s\n' "$expected" "$(command -v pnpm)"
     fi
 }
 
@@ -274,7 +318,6 @@ available_sdkman_temurin() {
             gsub(/[[:space:]]/, "", identifier)
             if (identifier ~ ("^" major "([.][[:alnum:].+_-]+)?-tem$")) {
                 print identifier
-                exit
             }
         }
     '
@@ -307,43 +350,50 @@ bootstrap_sdkman() {
         fi
     fi
 
-    local java_expected candidate
+    local java_expected candidate candidates installed=false
     java_expected="$(expected_java_major)"
     if [[ "$offline" == true ]]; then
-        candidate="$(cached_sdkman_temurin "$sdkman_dir" "$java_expected" || true)"
+        candidates="$(cached_sdkman_temurin "$sdkman_dir" "$java_expected" || true)"
     else
-        candidate="$(available_sdkman_temurin "$java_expected" || true)"
-        if [[ -z "$candidate" ]]; then
-            candidate="$(cached_sdkman_temurin "$sdkman_dir" "$java_expected" || true)"
+        candidates="$(available_sdkman_temurin "$java_expected" || true)"
+        if [[ -z "$candidates" ]]; then
+            candidates="$(cached_sdkman_temurin "$sdkman_dir" "$java_expected" || true)"
         fi
     fi
-    if [[ -z "$candidate" ]]; then
+    if [[ -z "$candidates" ]]; then
         setup_problem "SDKMAN! has no Eclipse Temurin $java_expected candidate available"
         return
     fi
 
     section "Install pinned Eclipse Temurin with SDKMAN!"
-    if [[ "$offline" == false && ! -d "$sdkman_dir/candidates/java/$candidate" ]]; then
-        local previous_auto_answer="${sdkman_auto_answer-}"
-        sdkman_auto_answer=true
-        if ! sdkman_command install java "$candidate" < <(printf 'n\n'); then
-            setup_problem "SDKMAN! could not install Eclipse Temurin $candidate"
+    # A newly listed SDKMAN! release can have an unavailable broker download.
+    # Try the remaining releases of the required major, newest first as listed.
+    while IFS= read -r candidate; do
+        if [[ "$offline" == false && ! -d "$sdkman_dir/candidates/java/$candidate" ]]; then
+            local previous_auto_answer="${sdkman_auto_answer-}"
+            sdkman_auto_answer=true
+            if ! sdkman_command install java "$candidate" < <(printf 'n\n'); then
+                printf 'SDKMAN! could not download %s; trying the next Temurin %s release.\n' "$candidate" "$java_expected" >&2
+                if [[ -n "$previous_auto_answer" ]]; then
+                    sdkman_auto_answer="$previous_auto_answer"
+                else
+                    unset sdkman_auto_answer
+                fi
+                continue
+            fi
             if [[ -n "$previous_auto_answer" ]]; then
                 sdkman_auto_answer="$previous_auto_answer"
             else
                 unset sdkman_auto_answer
             fi
-            return
         fi
-        if [[ -n "$previous_auto_answer" ]]; then
-            sdkman_auto_answer="$previous_auto_answer"
-        else
-            unset sdkman_auto_answer
+        if sdkman_command use java "$candidate" >/dev/null && java_is_expected_temurin; then
+            printf 'Using Eclipse Temurin: %s\n' "$candidate"
+            installed=true
+            break
         fi
-    fi
-    if ! sdkman_command use java "$candidate" >/dev/null || ! java_is_expected_temurin; then
-        setup_problem "SDKMAN! could not activate Eclipse Temurin $candidate"
-    fi
+    done <<< "$candidates"
+    [[ "$installed" == true ]] || setup_problem "SDKMAN! could not install or activate Eclipse Temurin $java_expected"
 }
 
 bootstrap_mise() {
@@ -399,7 +449,7 @@ bootstrap_mise() {
     fi
 
     export TESTING_TOOLBOX_MISE_ACTIVE=true
-    "$mise_bin" exec "${runtimes[@]}" -- "$script_path" "${original_args[@]}"
+    "$mise_bin" exec "${runtimes[@]}" -- "$script_path" ${original_args[@]+"${original_args[@]}"}
     exit $?
 }
 
@@ -453,6 +503,29 @@ select_testcontainers_desktop_context() {
     return 1
 }
 
+select_local_docker_context() {
+    # The CLI's context is not inherited by Testcontainers' Java client.
+    # Export the endpoint for both, without changing the user's active context.
+    [[ -z "${DOCKER_HOST:-}" ]] || return 1
+    local context endpoint
+    while IFS= read -r context; do
+        endpoint="$(docker context inspect "$context" --format '{{.Endpoints.docker.Host}}')"
+        case "$endpoint" in
+            unix://*|tcp://127.0.0.1:*|tcp://localhost:*) ;;
+            *) continue ;;
+        esac
+        if docker --context "$context" info >/dev/null 2>&1; then
+            export DOCKER_CONTEXT="$context" DOCKER_HOST="$endpoint"
+            if [[ "$context" == colima || "$context" == colima-* ]]; then
+                export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+            fi
+            printf 'Using Docker context: %s\n' "$context"
+            return 0
+        fi
+    done < <(docker context ls --format '{{.Name}}')
+    return 1
+}
+
 prepare_docker() {
     if ! command_exists docker && [[ "$(uname -s)" == "Darwin" && "$offline" == false ]] && command_exists brew; then
         if open -Ra 'Testcontainers Desktop' >/dev/null 2>&1; then
@@ -473,7 +546,19 @@ prepare_docker() {
         return
     fi
 
-    select_testcontainers_desktop_context || true
+    if docker info >/dev/null 2>&1; then
+        # Prefer the working active context before probing alternatives.
+        local active_context
+        active_context="$(docker context show)"
+        if [[ -z "${DOCKER_HOST:-}" ]]; then
+            export DOCKER_HOST="$(docker context inspect "$active_context" --format '{{.Endpoints.docker.Host}}')"
+            if [[ "$active_context" == colima || "$active_context" == colima-* ]]; then
+                export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+            fi
+        fi
+    else
+        select_testcontainers_desktop_context || select_local_docker_context || true
+    fi
     if ! docker info >/dev/null 2>&1 && [[ "$(uname -s)" == "Darwin" ]] && \
         open -Ra 'Testcontainers Desktop' >/dev/null 2>&1; then
         section "Start Testcontainers Desktop"
@@ -556,27 +641,6 @@ pnpm_install() {
     (cd "$repo_root/$demo" && pnpm install "${options[@]}")
 }
 
-# None of Artillery's three install scripts changes what these scenarios do. They
-# are named because pnpm 12.4 fails the install when a build script was skipped,
-# and this script keeps whatever pnpm the machine already has, which can still be
-# 12.4 (Corepack keeps the version an earlier run activated). CI runs the pinned
-# pnpm and leaves the flags out. json-server has no build script and needs none
-# of this.
-artillery_dlx_options=(
-    --allow-build=@playwright/browser-chromium
-    --allow-build=protobufjs
-    --allow-build=unix-dgram
-)
-
-run_dlx() {
-    # The Artillery demo has no package.json, so its tools are fetched for the run
-    # instead of being installed. Offline, pnpm takes them from the local store and
-    # fails when they were never cached.
-    local options=()
-    [[ "$offline" == true ]] && options+=(--offline)
-    pnpm dlx "${options[@]}" "$@"
-}
-
 prepare_node_dependencies() {
     command_exists pnpm || return
     local demo
@@ -591,12 +655,41 @@ prepare_node_dependencies() {
         fi
     done
 
-    section "Fetch the Artillery tools"
-    run_dlx "${artillery_dlx_options[@]}" artillery@latest --version >/dev/null ||
-        setup_problem "the artillery command is unavailable"
-    run_dlx json-server@latest --version >/dev/null ||
-        setup_problem "the json-server command is unavailable"
 }
+
+prepare_artillery_tools() {
+    section "Prepare global Artillery and json-server"
+    if ! command_exists pnpm; then
+        setup_problem "pnpm is unavailable for global Artillery preparation"
+        return
+    fi
+    # pnpm 11+ puts global commands in PNPM_HOME/bin. Select it in this
+    # subprocess without editing the user's shell startup files.
+    if [[ -z "${PNPM_HOME:-}" ]]; then
+        if [[ "$(uname -s)" == Darwin ]]; then
+            export PNPM_HOME="$HOME/Library/pnpm"
+        else
+            export PNPM_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm"
+        fi
+    fi
+    export PATH="$PNPM_HOME/bin:$PATH"
+    hash -r
+    if [[ "$offline" == false ]]; then
+        # These HTTP scenarios need no browser downloads or native build hooks.
+        if ! pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4; then
+            setup_problem "pnpm could not install global Artillery and json-server"
+        fi
+    fi
+    if ! artillery --version || ! json-server --version; then
+        setup_problem "global Artillery or json-server is unavailable; reconnect and rerun preparation"
+    fi
+}
+
+check_terminal_artillery() (
+    restore_original_environment
+    artillery --version && json-server --version || \
+        reason "artillery or json-server is unavailable on the caller's PATH; run pnpm setup and reopen the terminal"
+)
 
 run_java_demo() {
     local demo="$1" expect_fail="${2:-}" may_fail="${3:-}"
@@ -609,9 +702,16 @@ run_java_demo() {
         return
     fi
 
-    local options=()
+    local options=(--continue --console=plain)
     [[ "$offline" == true ]] && options+=(--offline)
-    (cd "$repo_root/$demo" && ./gradlew clean test --continue --console=plain "${options[@]}") || true
+    # Gradle may fail before its clean task starts. Never accept old XML from
+    # an earlier successful run as evidence that this invocation worked.
+    rm -rf -- "$repo_root/$demo/build/test-results/test" || {
+        reason "could not clear previous Gradle results"
+        return
+    }
+    [[ "${TESTING_TOOLBOX_NETWORK_BLOCKED:-false}" == true ]] && options+=(--no-daemon)
+    (cd "$repo_root/$demo" && ./gradlew clean test "${options[@]}") || true
     CHECK_EXPECT_FAIL="$expect_fail" CHECK_MAY_FAIL="$may_fail" \
         python3 "$checker" --format gradle \
         --path "$repo_root/$demo/build/test-results/test" --title "$demo" || \
@@ -716,6 +816,7 @@ run_webdriverio() {
             return
         fi
         not_checked+=("webdriverio browser run: the public demo site needs internet; $(basename "$report_dir") is ready")
+        prepared_report_dir="$report_dir"
         printf 'Offline report: %s\n' "$report"
         return 0
     fi
@@ -730,18 +831,21 @@ run_webdriverio() {
             "$repo_root/webdriverio/allure-report/"
     fi
 
-    local headless=false
-    if [[ "$(uname -s)" != "Darwin" && -z "${DISPLAY:-}" ]]; then
-        headless=true
-    fi
-
     local required_each=3 max_attempts=30 passes=0 failures=0 attempt status run_log
     local all_runs_ok=true
     for attempt in $(seq 1 "$max_attempts"); do
         printf '\nWebDriverIO history run %s of at most %s\n' "$attempt" "$max_attempts"
         run_log="$temp_root/webdriverio-$attempt.log"
+        # Clear previous output ourselves: pnpm can fail before the npm clean
+        # script runs. Such a launch must never count an earlier run's results.
+        if ! rm -rf -- "$repo_root/webdriverio/_results_/allure-raw"; then
+            reason "could not clear previous WebDriverIO results"
+            return
+        fi
+        # Headless preparation avoids competing visible Chrome sessions losing
+        # keyboard focus on macOS. The demo's direct pnpm test stays visible.
         (cd "$repo_root/webdriverio" && \
-            WDIO_HEADLESS="$headless" ALLURE_BUILD_OFFSET="$attempt" pnpm test) \
+            WDIO_HEADLESS=true ALLURE_BUILD_OFFSET="$attempt" pnpm test) \
             >"$run_log" 2>&1 || true
         if ! CHECK_EXPECT_FAIL='should login with valid credentials failing' \
             CHECK_MAY_FAIL='should login with valid credentials sometimes::Random failure triggered' \
@@ -799,6 +903,82 @@ run_webdriverio() {
         return
     fi
     printf 'Presentation report: %s\n' "$report"
+    prepared_report_dir="$report_dir"
+}
+
+check_terminal_report() {
+    if [[ -z "$prepared_report_dir" ]]; then
+        reason "no verified Allure report is available to open"
+        return
+    fi
+    local log="$temp_root/terminal-report.log" pid status
+    # Test the command printed to the presenter with the caller's PATH and Java,
+    # not the runtimes that bootstrap selected inside this script.
+    set -m
+    (
+        restore_original_environment
+        # Avoid opening a disposable browser tab for this HTTP probe.
+        export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Djava.awt.headless=true"
+        cd "$repo_root/webdriverio" || exit 1
+        printf 'Terminal pnpm: %s\n' "$(command -v pnpm)"
+        exec pnpm run report "$prepared_report_dir" --host 127.0.0.1 --port 0
+    ) >"$log" 2>&1 &
+    pid=$!
+    set +m
+    python3 - "$log" "$pid" <<'PY'
+from html.parser import HTMLParser
+from pathlib import Path
+import os
+import re
+import sys
+import time
+from urllib.request import build_opener, ProxyHandler
+
+class Assets(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.paths = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        value = attrs.get("src") if tag == "script" else attrs.get("href") if tag == "link" else None
+        if value and not value.startswith(("https:", "http:", "//")):
+            self.paths.append(value)
+
+log, pid = Path(sys.argv[1]), int(sys.argv[2])
+client = build_opener(ProxyHandler({}))
+deadline = time.monotonic() + 30
+while time.monotonic() < deadline:
+    output = log.read_text(errors="replace") if log.exists() else ""
+    match = re.search(r"http://127[.]0[.]0[.]1:\d+", output)
+    if match:
+        base = match.group(0) + "/"
+        with client.open(base, timeout=5) as response:
+            html = response.read().decode()
+        if "Allure" not in html:
+            raise SystemExit("the report command did not serve an Allure report")
+        assets = Assets()
+        assets.feed(html)
+        for path in assets.paths:
+            with client.open(base + path, timeout=5) as response:
+                if not response.read(1):
+                    raise SystemExit(f"empty report asset: {path}")
+        print("Caller environment: pnpm run report served Allure and its entry assets over HTTP")
+        break
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        raise SystemExit("pnpm run report exited before starting its server")
+    time.sleep(0.1)
+else:
+    raise SystemExit("pnpm run report did not start within 30 seconds")
+PY
+    status=$?
+    stop_backend "$pid"
+    if [[ "$status" -ne 0 ]]; then
+        tail -n 60 "$log" >&2
+        reason "pnpm run report failed in the caller's environment; repair that installed launcher, not just the preflight PATH; see $diagnostic_root/checks/terminal-report.log"
+    fi
 }
 
 wait_for_backend() {
@@ -812,15 +992,14 @@ wait_for_backend() {
 
 stop_backend() {
     local pid="$1"
-    # pnpm dlx runs json-server as a grandchild, so signalling the launched command
-    # alone leaves the server holding port 3000 for the next run.
+    # Stop the whole process group, including any children of the launcher.
     kill -- "-$pid" >/dev/null 2>&1 || true
     wait "$pid" >/dev/null 2>&1 || true
 }
 
 run_artillery() {
-    if ! command_exists pnpm || ! command_exists curl || ! command_exists python3; then
-        reason "pnpm, curl, or python3 is unavailable"
+    if ! command_exists artillery || ! command_exists json-server || ! command_exists curl || ! command_exists python3; then
+        reason "artillery, json-server, curl, or python3 is unavailable"
         return
     fi
     local backend_log="$temp_root/json-server.log"
@@ -831,21 +1010,22 @@ run_artillery() {
     # Job control puts the backend in a process group of its own, which is what
     # stop_backend signals.
     set -m
-    run_dlx json-server@latest "$repo_root/artillery/backend/db.json5" >"$backend_log" 2>&1 &
+    (cd "$repo_root" && json-server artillery/backend/db.json) >"$backend_log" 2>&1 &
     local backend_pid=$!
     set +m
     if ! wait_for_backend; then
         stop_backend "$backend_pid"
-        reason "json-server did not start; see $backend_log while the script is running"
+        tail -n 100 "$backend_log" >&2
+        reason "json-server did not start; see $diagnostic_root/checks/json-server.log"
         return
     fi
 
-    (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
+    (cd "$repo_root" && artillery run \
         --overrides '{"config":{"phases":[{"duration":5,"arrivalRate":5}]}}' \
-        --output "$simple" simple.yml) >"$simple_log" 2>&1 || true
-    (cd "$repo_root/artillery" && run_dlx "${artillery_dlx_options[@]}" artillery@latest run \
+        --output "$simple" artillery/simple.yml) >"$simple_log" 2>&1 || true
+    (cd "$repo_root" && artillery run \
         --overrides '{"config":{"phases":[{"duration":10,"arrivalRate":2}]}}' \
-        --output "$complex" complex.yml) >"$complex_log" 2>&1 || true
+        --output "$complex" artillery/complex.yml) >"$complex_log" 2>&1 || true
     stop_backend "$backend_pid"
 
     local ok=true
@@ -863,8 +1043,19 @@ run_artillery() {
 }
 
 docker_socket_path() {
+    # This is a bind source inside the daemon, which can differ from the host's
+    # client endpoint. Reuse Testcontainers' explicit daemon socket override.
+    if [[ -n "${TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE:-}" ]]; then
+        printf '%s\n' "$TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE"
+        return
+    fi
     local host="${DOCKER_HOST:-}" context="${DOCKER_CONTEXT:-}"
     [[ -n "$context" ]] || context="$(docker context show 2>/dev/null || true)"
+    if [[ "$context" == colima || "$context" == colima-* ]]; then
+        # Bind sources are resolved inside Colima's VM, not on the macOS host.
+        printf '%s\n' /var/run/docker.sock
+        return
+    fi
     if [[ "$host" == unix://* ]]; then
         printf '%s\n' "${host#unix://}"
         return
@@ -889,34 +1080,35 @@ run_pumba() {
     socket="$(docker_socket_path)"
     context="${DOCKER_CONTEXT:-$(docker context show 2>/dev/null || true)}"
     if [[ -z "$socket" ]] || \
-        [[ ! -S "$socket" && "$context" != tcc && "$context" != tcd ]]; then
+        [[ ! -S "$socket" && -z "${TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE:-}" && "$context" != tcc && "$context" != tcd && "$context" != colima && "$context" != colima-* ]]; then
         reason "the Docker Unix socket could not be found for Pumba"
         return
     fi
 
-    local suffix network target client log
+    local suffix network network_id target client log label
     suffix="$(basename "$temp_root" | tr -cd '[:alnum:]')"
+    label="testing-toolbox.pumba=$suffix"
     network="toolbox-chaos-$suffix"
     target="toolbox-target-$suffix"
     client="toolbox-client-$suffix"
     log="$temp_root/ping.log"
-    local network_created=false target_created=false client_created=false ok=true
+    local client_created=false ok=true
 
-    if docker network create "$network"; then
-        network_created=true
-    else
+    if ! "$repo_root/pumba/cleanup.sh" "$suffix"; then
+        reason "previous Pumba demo resources could not be cleaned up"
+        return
+    fi
+    if ! network_id="$(docker network create --label "$label" "$network")"; then
         ok=false
         last_reason="Docker could not create the Pumba demo network"
     fi
-    if [[ "$ok" == true ]] && docker run --pull=never -d --name "$target" \
-        --network "$network" alpine:3.24.1 sleep 600; then
-        target_created=true
-    else
+    if [[ "$ok" == true ]] && ! docker run --pull=never -d --name "$target" \
+        --label "$label" --network "$network_id" alpine:3.24.1 sleep 600; then
         [[ -n "$last_reason" ]] || last_reason="Docker could not start the Pumba target"
         ok=false
     fi
     if [[ "$ok" == true ]] && docker run --pull=never -d --name "$client" \
-        --network "$network" testing-toolbox/pumba-client:3.24.1 ping "$target"; then
+        --label "$label" --network "$network_id" testing-toolbox/pumba-client:3.24.1 ping "$target"; then
         client_created=true
     else
         [[ -n "$last_reason" ]] || last_reason="Docker could not start the Pumba ping client"
@@ -934,12 +1126,12 @@ run_pumba() {
             ok=false
         fi
     fi
-    local socket_options=()
+    local pumba_options=(--pull=never --rm --label "$label")
     if [[ "$socket" == *podman* ]]; then
-        socket_options+=(--security-opt label=disable)
+        pumba_options+=(--security-opt label=disable)
     fi
-    if [[ "$ok" == true ]] && ! docker run --pull=never --rm \
-        "${socket_options[@]}" -v "$socket:/var/run/docker.sock" gaiaadm/pumba:1.2.1 \
+    if [[ "$ok" == true ]] && ! docker run \
+        "${pumba_options[@]}" -v "$socket:/var/run/docker.sock" gaiaadm/pumba:1.2.1 \
         netem --duration 15s --tc-image "$pumba_nettools_image" --pull-image=false \
         delay --time 3000 "$client"; then
         last_reason="Pumba could not apply the network delay"
@@ -949,9 +1141,10 @@ run_pumba() {
         docker logs "$client" >"$log" 2>&1 || true
     fi
 
-    [[ "$client_created" == true ]] && docker rm -f "$client" >/dev/null 2>&1 || true
-    [[ "$target_created" == true ]] && docker rm -f "$target" >/dev/null 2>&1 || true
-    [[ "$network_created" == true ]] && docker network rm "$network" >/dev/null 2>&1 || true
+    if ! "$repo_root/pumba/cleanup.sh" "$suffix"; then
+        last_reason="Pumba demo resources could not be cleaned up"
+        ok=false
+    fi
 
     if [[ "$ok" == true ]] && ! grep -qE \
         'time=([3-9][0-9]{3}|[1-9][0-9]{4,})([.][0-9]+)? ms' "$log"; then
@@ -985,6 +1178,44 @@ print_items() {
     done
 }
 
+restore_original_environment() {
+    export PATH="$original_path"
+    unset TESTING_TOOLBOX_MISE_ACTIVE DOCKER_HOST DOCKER_CONTEXT TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE JAVA_HOME
+    [[ -z "$original_java_home" ]] || export JAVA_HOME="$original_java_home"
+    [[ -z "$original_docker_host" ]] || export DOCKER_HOST="$original_docker_host"
+    [[ -z "$original_docker_context" ]] || export DOCKER_CONTEXT="$original_docker_context"
+    [[ -z "$original_socket_override" ]] || export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE="$original_socket_override"
+    hash -r
+}
+
+run_offline_verification() (
+    # A subprocess starts runtime selection afresh. Do not inherit Docker context
+    # or nvm state that this run repaired only in its own shell.
+    restore_original_environment
+    if [[ "$(uname -s)" == Darwin ]]; then
+        printf 'Checking offline with external connections blocked; localhost and Docker sockets remain available.\n'
+        # Seatbelt's localhost rule rejects Java's IPv4-mapped IPv6 sockets.
+        # Use IPv4 for this verification process, including its fresh Gradle daemon.
+        export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Djava.net.preferIPv4Stack=true"
+        TESTING_TOOLBOX_OFFLINE=true TESTING_TOOLBOX_NETWORK_BLOCKED=true \
+            /usr/bin/sandbox-exec -f "$repo_root/.github/scripts/offline.sb" \
+            "$script_path" --no-codex
+    else
+        printf 'Checking offline using cached dependencies and images.\n'
+        TESTING_TOOLBOX_OFFLINE=true "$script_path" --no-codex
+    fi
+)
+
+verify_offline() {
+    local status
+    run_offline_verification >"$diagnostic_root/offline-verification.log" 2>&1
+    status=$?
+    tail -n 35 "$diagnostic_root/offline-verification.log"
+    if [[ "$status" -ne 0 ]]; then
+        reason "offline verification failed; see $diagnostic_root/offline-verification.log"
+    fi
+}
+
 write_codex_prompt() {
     local prompt_file="$1"
     local attempt
@@ -992,6 +1223,10 @@ write_codex_prompt() {
         grep -Fq 'The preparation is incomplete.' "$preflight_log" 2>/dev/null && break
         sleep 0.1
     done
+    python3 "$repo_root/.github/scripts/preflight_history.py" \
+        --repo "$repo_root" --current "$diagnostic_root" \
+        --root "$diagnostic_parent" --root "$temp_parent" --root /private/tmp \
+        >"$diagnostic_root/recent-runs.md"
     {
         printf '%s\n' \
             'Get this testing-toolbox presentation environment ready. The preflight below ran and found problems.' \
@@ -999,16 +1234,17 @@ write_codex_prompt() {
             "Repository: $repo_root" \
             "Machine: $(uname -a)" \
             "Offline mode: $offline" \
+            "Saved per-command logs and results: $diagnostic_root/checks" \
             '' \
             'Setup problems:'
         local item
-        for item in "${setup_problems[@]}"; do printf -- '- %s\n' "$item"; done
+        for item in ${setup_problems[@]+"${setup_problems[@]}"}; do printf -- '- %s\n' "$item"; done
         [[ ${#setup_problems[@]} -gt 0 ]] || printf '%s\n' '- none'
         printf '%s\n' '' 'Failed checks:'
-        for item in "${failed[@]}"; do printf -- '- %s\n' "$item"; done
+        for item in ${failed[@]+"${failed[@]}"}; do printf -- '- %s\n' "$item"; done
         [[ ${#failed[@]} -gt 0 ]] || printf '%s\n' '- none'
         printf '%s\n' '' 'Checks skipped because of the environment:'
-        for item in "${not_checked[@]}"; do printf -- '- %s\n' "$item"; done
+        for item in ${not_checked[@]+"${not_checked[@]}"}; do printf -- '- %s\n' "$item"; done
         [[ ${#not_checked[@]} -gt 0 ]] || printf '%s\n' '- none'
         printf '%s\n' \
             '' \
@@ -1016,6 +1252,10 @@ write_codex_prompt() {
             '  .github/scripts/check_all_demos.sh --no-codex' \
             '' \
             'Keep working until that command passes, or report the exact external blocker.' \
+            'An online pass alone is insufficient. The preflight must also pass its full offline verification.' \
+            'Reproduce the original offline failures before fixing them. Compare the recent run summaries and previous repair outcomes below for recurring causes.' \
+            'Verify from a fresh non-interactive shell, including a PATH with an older package manager before nvm. Never repair only the current shell.' \
+            'Also verify the presenter commands outside the bootstrapped preflight environment, especially cd webdriverio && pnpm run report. Repair an obsolete launcher through its owning package manager; do not patch the pnpm .tools cache.' \
             'You may install tools and start local services. Do not commit, push, or merge.' \
             'The worktree may contain temporary changes made while presenting the demos.' \
             'Preserve unrelated work, but you may restore a changed file or hunk to HEAD when it is a temporary talk change that caused a reported failure.' \
@@ -1028,6 +1268,7 @@ write_codex_prompt() {
         printf '%s\n' '' 'Complete preflight log:' '```text'
         cat "$preflight_log"
         printf '%s\n' '```'
+        cat "$diagnostic_root/recent-runs.md"
         printf '%s\n' '' 'Worktree state before the preflight:' '```text'
         printf '%s\n' "${before_status:-clean}"
         printf '%s\n' '```'
@@ -1039,7 +1280,7 @@ wait_for_reconnect() {
     until internet_is_reachable; do
         sleep 5
     done
-    offline=false
+    # Keep the failed run's mode for the repair prompt and saved diagnostics.
     printf 'Internet access restored.\n' >&2
 }
 
@@ -1113,6 +1354,9 @@ offer_codex_fix() {
 
     section "Codex repair"
     printf 'Codex output will be saved to %s\n' "$codex_log"
+    # Reconnection allows repair downloads even if the failed run explicitly
+    # requested offline mode. The prompt and run metadata retain that failure mode.
+    unset TESTING_TOOLBOX_OFFLINE TESTING_TOOLBOX_NETWORK_BLOCKED
     "$codex_bin" exec --yolo --color never -C "$repo_root" \
         --output-last-message "$diagnostic_root/codex-last-message.txt" - \
         <"$prompt_file" 2>&1 | tee "$codex_log"
@@ -1127,6 +1371,7 @@ offer_codex_fix() {
     fi
     cleanup
     trap - EXIT
+    restore_original_environment
     if [[ "$interactive_terminal" == true ]]; then
         exec "$script_path" --no-codex </dev/tty >/dev/tty 2>&1
     fi
@@ -1137,7 +1382,12 @@ main() {
     cd "$repo_root" || exit 1
     temp_parent="$(cd "${TMPDIR:-/tmp}" && pwd -P)" || exit 1
     temp_root="$(mktemp -d "$temp_parent/testing-toolbox.XXXXXX")"
-    diagnostic_root="$(mktemp -d "$temp_parent/testing-toolbox-preflight-log.XXXXXX")"
+    diagnostic_parent="$(git rev-parse --git-path testing-toolbox-preflight)"
+    mkdir -p "$diagnostic_parent" || exit 1
+    diagnostic_parent="$(cd "$diagnostic_parent" && pwd -P)"
+    diagnostic_root="$(mktemp -d "$diagnostic_parent/run-$(date +%Y%m%d-%H%M%S).XXXXXX")"
+    printf '%s\n' "$repo_root" >"$diagnostic_root/repository.txt"
+    printf '%s\n' running >"$diagnostic_root/status.txt"
     preflight_log="$diagnostic_root/preflight.log"
     codex_log="$diagnostic_root/codex-repair.log"
     if [[ -t 0 && -t 1 ]]; then
@@ -1154,6 +1404,7 @@ main() {
         offline=true
         printf 'Offline mode. Cached dependencies and the saved Allure report will be checked.\n'
     fi
+    printf '%s\n' "$offline" >"$diagnostic_root/offline.txt"
 
     bootstrap_nvm
     bootstrap_sdkman
@@ -1165,6 +1416,7 @@ main() {
     prepare_docker
     prepare_docker_images
     prepare_node_dependencies
+    prepare_artillery_tools
 
     record "junit-assertj" run_java_demo junit-assertj \
         'PersonRepositoryTest[.]getPeopleBornIn::Smith'
@@ -1184,20 +1436,31 @@ main() {
     record "jest-msw" run_jest_demo jest-msw
     record "jest-parameterized" run_jest_demo jest-parameterized
     record "webdriverio" run_webdriverio
+    record "Terminal report command" check_terminal_report
+    record "Terminal Artillery commands" check_terminal_artillery
     record "artillery" run_artillery
     record "pumba" run_pumba
+    if [[ "$offline" == false ]]; then
+        record "Offline readiness" verify_offline
+    fi
     record "Worktree remains unchanged" check_worktree
+    save_diagnostics
 
     section "Summary"
-    print_items "Passed checks:" "${passed[@]}"
-    print_items "Setup problems:" "${setup_problems[@]}"
-    print_items "Failed checks:" "${failed[@]}"
-    print_items "Not checked:" "${not_checked[@]}"
+    {
+        # Bash 3.2 with nounset treats empty arrays as unset. Preserve zero args.
+        print_items "Passed checks:" ${passed[@]+"${passed[@]}"}
+        print_items "Setup problems:" ${setup_problems[@]+"${setup_problems[@]}"}
+        print_items "Failed checks:" ${failed[@]+"${failed[@]}"}
+        print_items "Not checked:" ${not_checked[@]+"${not_checked[@]}"}
+    } >"$diagnostic_root/summary.txt"
+    cat "$diagnostic_root/summary.txt"
     printf '\nDiagnostic logs: %s\n' "$diagnostic_root"
 
     if [[ ${#setup_problems[@]} -eq 0 && ${#failed[@]} -eq 0 ]]; then
-        printf '\nAll demos are prepared and checked.\n'
-        if [[ -s "$repo_root/webdriverio/allure-report/index.html" ]]; then
+        printf '%s\n' passed >"$diagnostic_root/status.txt"
+        printf '\nAll locally runnable demos and the offline Allure report passed.\n'
+        if [[ "$prepared_report_dir" == "$repo_root/webdriverio/allure-report" ]]; then
             printf 'Before the talk, run (cd webdriverio && pnpm run report) and leave the report open.\n'
         else
             printf 'Before the talk, run (cd webdriverio && pnpm run report allure-report-reference) and leave the report open.\n'
@@ -1205,9 +1468,11 @@ main() {
         return 0
     fi
 
+    printf '%s\n' failed >"$diagnostic_root/status.txt"
     printf '\nThe preparation is incomplete. Every known problem is listed above.\n' >&2
     if [[ "$offline" == true ]]; then
-        if [[ "$allow_codex_prompt" != true ]]; then
+        if [[ "$allow_codex_prompt" != true ]] || \
+            [[ "$interactive_terminal" != true && "$fix_with_codex" != true ]]; then
             printf '%s\n' \
                 'Reconnect to the internet, then let Codex repair the remaining setup with:' \
                 '  .github/scripts/check_all_demos.sh --fix-with-codex' >&2

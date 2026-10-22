@@ -3,6 +3,7 @@
 ## Requirements
 
 - Node.js v24 LTS
+- pnpm
 
 ## Documentation
 
@@ -10,32 +11,32 @@ https://www.artillery.io/docs/get-started/first-test
 
 ## Installation
 
-This needs `pnpm setup` to have put pnpm's global bin directory on your PATH.
-
 ```bash
-pnpm add -g --allow-build=@playwright/browser-chromium --allow-build=protobufjs \
-  --allow-build=unix-dgram artillery@latest
+pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4
 ```
 
-The three install scripts Artillery declares have to be named, because pnpm 12.4 refuses to finish
-the install while any of them is unrun. None of the three changes what these scenarios do, and pnpm
-12.5 only warns, so the flags can go once your pnpm is past 12.4.
+## Run from the repository root
 
-## Run
+Sample backend:
 
-Sample backend: 
 ```bash
-pnpm dlx json-server@latest backend/db.json5
+json-server artillery/backend/db.json
 ```
 
 Simple load (burst) test:
 
 ```bash
-artillery run simple.yml
+artillery run artillery/simple.yml
 ```
 
 More complex load test:
 
 ```bash
-artillery run complex.yml
+artillery run artillery/complex.yml
 ```
+
+## Run from inside the artillery folder
+
+- Backend: `json-server backend/db.json`
+- Simple test: `artillery run simple.yml`
+- Complex test: `artillery run complex.yml`
