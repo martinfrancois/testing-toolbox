@@ -1,0 +1,43 @@
+// Fails once the junit-mockserver demo can drop its tools.jackson constraint
+// (https://github.com/martinfrancois/testing-toolbox/issues/70). It resolves the
+// declared MockServer without the constraint and compares the Jackson 3 versions
+// MockServer brings by itself with the version the constraint asks for.
+// Usage, from junit-mockserver: ./gradlew --init-script ../.github/scripts/check_mockserver_jackson_workaround.gradle checkMockServerJacksonWorkaround
+
+def parts(String version) { version.tokenize('.-').collect { it.isInteger() ? it.toInteger() : 0 } }
+
+def atLeast(String version, String minimum) {
+    def (a, b) = [parts(version), parts(minimum)]
+    for (int i = 0; i < Math.max(a.size(), b.size()); i++) {
+        int x = i < a.size() ? a[i] : 0
+        int y = i < b.size() ? b[i] : 0
+        if (x != y) return x > y
+    }
+    true
+}
+
+rootProject {
+    tasks.register('checkMockServerJacksonWorkaround') {
+        doLast {
+            def declared = configurations.testImplementation
+            def required = declared.dependencyConstraints.find { it.group == 'tools.jackson' && it.name == 'jackson-bom' }?.version
+            if (required == null) {
+                throw new GradleException('No tools.jackson:jackson-bom constraint found; delete this check together with it.')
+            }
+            def mockserver = declared.dependencies.find { it.group == 'org.mock-server' }
+            def detached = configurations.detachedConfiguration(dependencies.create("${mockserver.group}:${mockserver.name}:${mockserver.version}"))
+            def runtime = configurations.testRuntimeClasspath.attributes
+            detached.attributes { attrs -> runtime.keySet().each { attrs.attribute(it, runtime.getAttribute(it)) } }
+            def brought = detached.incoming.resolutionResult.allComponents
+                    .collect { it.moduleVersion }
+                    .findAll { it.group == 'tools.jackson.core' && it.name in ['jackson-core', 'jackson-databind'] }
+            if (brought.isEmpty()) {
+                throw new GradleException("MockServer ${mockserver.version} no longer brings tools.jackson.core; remove the constraint, see https://github.com/martinfrancois/testing-toolbox/issues/70")
+            }
+            brought.each { println "MockServer ${mockserver.version} brings ${it.group}:${it.name}:${it.version}, the constraint asks for ${required}" }
+            if (brought.every { atLeast(it.version, required) }) {
+                throw new GradleException("MockServer ${mockserver.version} brings Jackson ${required} or newer by itself; remove the constraint, see https://github.com/martinfrancois/testing-toolbox/issues/70")
+            }
+        }
+    }
+}
