@@ -185,6 +185,9 @@ jobs:
       # that an update moved outside the range another package names as its peer.
       - name: Check peer dependencies
         run: pnpm peers check
+      # Fails once @wdio/video-reporter can replace the overrides in pnpm-workspace.yaml.
+      - name: Check the video reporter workaround is still needed
+        run: python3 ../.github/scripts/check_video_reporter_workaround.py
       # WebdriverIO strips the types from the specs without checking them, so only
       # tsc notices when a types package such as @types/jasmine no longer fits.
       - name: Check the types

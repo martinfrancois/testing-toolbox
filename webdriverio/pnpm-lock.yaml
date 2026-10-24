@@ -4,6 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  wdio-video-reporter>@wdio/allure-reporter: 10.0.1
+  wdio-video-reporter>@wdio/globals: 10.0.2
+  wdio-video-reporter>@wdio/logger: 10.0.0
+  wdio-video-reporter>@wdio/reporter: 10.0.1
+  wdio-video-reporter>@wdio/types: 10.0.1
+
 importers:
 
   .:
@@ -514,9 +521,6 @@ packages:
   '@types/jasmine@7.0.0':
     resolution: {integrity: sha512-6yNx9BsBSKiXO2yqLXs/GZDuD58Gkn6Ty26254FFOuw6B4XU5Xq8mAR0xFy8zHgAhqQd++y41fSJ8BdwrWXhqQ==}
 
-  '@types/node@20.19.43':
-    resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
-
   '@types/node@22.20.5':
     resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
 
@@ -680,10 +684,6 @@ packages:
     resolution: {integrity: sha512-Unxlc1THjU8V3DDRqcFMWvFvZVdaeYUrNgQO4RlZvLF+ygio7mOkYjfz7SGmrrCsy7xye5Elqn4VCw/ic0pstQ==}
     engines: {node: '>=22.19.0'}
 
-  '@wdio/allure-reporter@9.32.0':
-    resolution: {integrity: sha512-GP7H/X2A80YiGhWaK3BBoizv2tcY3czUJWeIrbSNcbydph/zKDrATn7+QTI9qcX9Cm/EecV1H5MzvmEHMfwWFg==}
-    engines: {node: '>=18.20.0'}
-
   '@wdio/cli@10.0.2':
     resolution: {integrity: sha512-t67EIII06oAtzCyy9RYNgmChzSnwY91Vw5NW8QwJg2p8ZT2cvDYrtytEYO/x3jZQK3uJ/mba2GlQQP4SHJK+Uw==}
     engines: {node: '>=22.19.0'}
@@ -707,13 +707,6 @@ packages:
     peerDependencies:
       expect-webdriverio: ^8.0.0-0 || ^8.0.0-alpha.3
       webdriverio: ^10.0.0-0 || ^10.0.0
-
-  '@wdio/globals@9.31.3':
-    resolution: {integrity: sha512-ZzmRKUlwUBahNoNxHbAzst+9dNInEjLQc7Z3c86OhDRxAf3Ivw8k2rc56UCbyYiZnkd1dOpuA91zFiTrUNNORw==}
-    engines: {node: '>=18.20.0'}
-    peerDependencies:
-      expect-webdriverio: ^6.0.9
-      webdriverio: ^9.28.0
 
   '@wdio/jasmine-framework@10.0.2':
     resolution: {integrity: sha512-52DHCbHBePe6t3NJXr5FMKjXL+hN3O0eRPeOqRzuEzsgWyel2czsjCXjA7lZ9+MA0zhhfdVIVw8z/whHkRP4kQ==}
@@ -745,10 +738,6 @@ packages:
   '@wdio/reporter@10.0.1':
     resolution: {integrity: sha512-A917SeniucyosspqazR9tGH6t9JaecU5SRP3VzRGyIo0JBEKV6walJU1VBauMH+7n043huzgiQvNJ414Vi8dmQ==}
     engines: {node: '>=22.19.0'}
-
-  '@wdio/reporter@9.32.0':
-    resolution: {integrity: sha512-9z8pG7zAayRXwheN8BH6YNuzyPJ/kFIRyPl2fsD+6IvF/LFSptXPlk2XjcnKvY9Am6Lif5oAwebDFcLHp1ztAA==}
-    engines: {node: '>=18.20.0'}
 
   '@wdio/runner@10.0.2':
     resolution: {integrity: sha512-+BnWawcWrqQh9RoKhqtnlJ3onRDpahu5BuJx1ESrWvR/+MDdlOx617Mk5Pvw69+vpDpMUdox9XqFMAt3H3hL7Q==}
@@ -790,10 +779,6 @@ packages:
   '@wdio/types@10.0.1':
     resolution: {integrity: sha512-HGP9lAYXCsLAXzugfT4khCh7tYByWOMIxZHCG+tUvgmpwNzi6lfIsxyIlWownXK1wYJUpk6tkDBX/iXwN+q0lg==}
     engines: {node: '>=22.19.0'}
-
-  '@wdio/types@9.32.0':
-    resolution: {integrity: sha512-7jMZQ4TGX45bPLgCv9du7mw/Kq7FrjEbQ5vTGg/pUgQy/wSygJ3u4FvPu8FS+DNeQUmvjSPKEUGfl4N+rZjpUg==}
-    engines: {node: '>=18.20.0'}
 
   '@wdio/utils@10.0.1':
     resolution: {integrity: sha512-aYvTtF+7IYsvkFdXdu32Q2vexEaXYK79R1wLTnAXrT2Q7fp0oCDL0UgBx8Jgo5Tn98ZLWx4JlUeZsDRAIkV4Zw==}
@@ -2654,10 +2639,6 @@ snapshots:
 
   '@types/jasmine@7.0.0': {}
 
-  '@types/node@20.19.43':
-    dependencies:
-      undici-types: 6.21.0
-
   '@types/node@22.20.5':
     dependencies:
       undici-types: 6.21.0
@@ -2777,18 +2758,6 @@ snapshots:
     transitivePeerDependencies:
       - allure-playwright
 
-  '@wdio/allure-reporter@9.32.0':
-    dependencies:
-      '@types/node': 20.19.43
-      '@wdio/reporter': 9.32.0
-      '@wdio/types': 9.32.0
-      allure-js-commons: 3.13.0
-      csv-stringify: 6.9.0
-      html-entities: 2.6.0
-      strip-ansi: 7.2.0
-    transitivePeerDependencies:
-      - allure-playwright
-
   '@wdio/cli@10.0.2(@types/node@24.19.2)(expect-webdriverio@8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)))(supports-color@7.2.0)(yauzl@2.10.0)':
     dependencies:
       '@vitest/snapshot': 5.0.5
@@ -2854,11 +2823,6 @@ snapshots:
       chalk: 5.6.2
 
   '@wdio/globals@10.0.2(expect-webdriverio@8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)))(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0))':
-    dependencies:
-      expect-webdriverio: 8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0))
-      webdriverio: 10.0.2(supports-color@7.2.0)(yauzl@2.10.0)
-
-  '@wdio/globals@9.31.3(expect-webdriverio@8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)))(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0))':
     dependencies:
       expect-webdriverio: 8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0))
       webdriverio: 10.0.2(supports-color@7.2.0)(yauzl@2.10.0)
@@ -2935,14 +2899,6 @@ snapshots:
     dependencies:
       '@types/node': 22.20.5
       '@wdio/types': 10.0.1
-      diff: 8.0.4
-      object-inspect: 1.13.4
-
-  '@wdio/reporter@9.32.0':
-    dependencies:
-      '@types/node': 20.19.43
-      '@wdio/logger': 9.29.1
-      '@wdio/types': 9.32.0
       diff: 8.0.4
       object-inspect: 1.13.4
 
@@ -3031,10 +2987,6 @@ snapshots:
   '@wdio/types@10.0.1':
     dependencies:
       '@types/node': 22.20.5
-
-  '@wdio/types@9.32.0':
-    dependencies:
-      '@types/node': 20.19.43
 
   '@wdio/utils@10.0.1(supports-color@7.2.0)(yauzl@2.10.0)':
     dependencies:
@@ -4560,11 +4512,11 @@ snapshots:
   wdio-video-reporter@6.2.0(expect-webdriverio@8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)))(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)):
     dependencies:
       '@ffmpeg-installer/ffmpeg': 1.1.0
-      '@wdio/allure-reporter': 9.32.0
-      '@wdio/globals': 9.31.3(expect-webdriverio@8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)))(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0))
-      '@wdio/logger': 9.29.1
-      '@wdio/reporter': 9.32.0
-      '@wdio/types': 9.32.0
+      '@wdio/allure-reporter': 10.0.1
+      '@wdio/globals': 10.0.2(expect-webdriverio@8.0.0(@wdio/types@10.0.1)(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0)))(webdriverio@10.0.2(supports-color@7.2.0)(yauzl@2.10.0))
+      '@wdio/logger': 10.0.0
+      '@wdio/reporter': 10.0.1
+      '@wdio/types': 10.0.1
       glob: 11.1.0
     transitivePeerDependencies:
       - allure-playwright
