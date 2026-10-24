@@ -86,6 +86,10 @@ jobs:
           CHECK_EXPECT_FAIL: ${{ matrix.expect-fail }}
           CHECK_MAY_FAIL: ${{ matrix.may-fail }}
         run: python3 ../.github/scripts/check_results.py --format gradle --path build/test-results/test --title ${{ matrix.demo }}
+      # Fails once MockServer brings a fixed Jackson 3 and the constraint in build.gradle.kts can go.
+      - name: Check the Jackson constraint is still needed
+        if: matrix.demo == 'junit-mockserver'
+        run: ./gradlew --console=plain --init-script ../.github/scripts/check_mockserver_jackson_workaround.gradle checkMockServerJacksonWorkaround
 
   # GitHub's dependency graph cannot read build.gradle.kts, so without this the
   # Java demos get no Dependabot alerts and Renovate has no vulnerability to fix.
