@@ -38,3 +38,11 @@ minimumReleaseAgeIgnoreMissingTime: false
 # package.json. CI installs that version with pnpm/action-setup, and locally
 # Corepack has to provide it.
 pmOnFail: ignore
+
+# wdio-video-reporter 6.2.0 only accepts WebdriverIO 9; drop once @wdio/video-reporter is on npm, see https://github.com/martinfrancois/testing-toolbox/issues/69
+overrides:
+  'wdio-video-reporter>@wdio/allure-reporter': 10.0.1
+  'wdio-video-reporter>@wdio/globals': 10.0.2
+  'wdio-video-reporter>@wdio/logger': 10.0.0
+  'wdio-video-reporter>@wdio/reporter': 10.0.1
+  'wdio-video-reporter>@wdio/types': 10.0.1
