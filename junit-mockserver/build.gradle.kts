@@ -27,7 +27,7 @@ dependencies {
 
     constraints {
         // MockServer brings Jackson 3.2.1 with known CVEs; drop once it brings 3.2.3, see https://github.com/martinfrancois/testing-toolbox/issues/70
-        testImplementation("tools.jackson:jackson-bom:3.2.3")
+        testImplementation("tools.jackson:jackson-bom:3.2.4")
     }
 }
 
