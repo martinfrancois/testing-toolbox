@@ -1,10 +1,3 @@
-# pnpm does not run a dependency's install scripts unless it is listed here.
-# The video reporter spawns the ffmpeg binary, and the install script of the
-# matching platform package is the chmod that makes it executable, so every
-# platform package the lockfile carries is listed and the demo records video
-# wherever it is presented. The browser drivers download Edge and Firefox, which
-# this demo never starts, and esbuild finds its own prebuilt binary without its
-# postinstall.
 allowBuilds:
   '@ffmpeg-installer/darwin-arm64': true
   '@ffmpeg-installer/darwin-x64': true
@@ -41,8 +34,8 @@ pmOnFail: ignore
 
 # wdio-video-reporter 6.2.0 only accepts WebdriverIO 9; drop once @wdio/video-reporter is on npm, see https://github.com/martinfrancois/testing-toolbox/issues/69
 overrides:
-  'wdio-video-reporter>@wdio/allure-reporter': 10.0.1
-  'wdio-video-reporter>@wdio/globals': 10.0.2
-  'wdio-video-reporter>@wdio/logger': 10.0.0
-  'wdio-video-reporter>@wdio/reporter': 10.0.1
-  'wdio-video-reporter>@wdio/types': 10.0.1
+  'wdio-video-reporter>@wdio/allure-reporter': 10.1.0
+  'wdio-video-reporter>@wdio/globals': 10.1.0
+  'wdio-video-reporter>@wdio/logger': 10.1.0
+  'wdio-video-reporter>@wdio/reporter': 10.1.0
+  'wdio-video-reporter>@wdio/types': 10.1.0
