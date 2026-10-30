@@ -373,8 +373,8 @@ jobs:
         run: |
           trap './pumba/cleanup.sh ci' EXIT
           chaos_network=$(docker network create --label testing-toolbox.pumba=ci "toolbox-chaos-$(date +%s)-$$")
-          docker run -d --label testing-toolbox.pumba=ci --name target --network "$chaos_network" alpine:3.24.2 sleep 600
-          docker run -d --label testing-toolbox.pumba=ci --name tryme --network "$chaos_network" alpine:3.24.2 sh -c "apk add --update iproute2 && ping target"
+          docker run -d --label testing-toolbox.pumba=ci --name target --network "$chaos_network" alpine:3.24.3 sleep 600
+          docker run -d --label testing-toolbox.pumba=ci --name tryme --network "$chaos_network" alpine:3.24.3 sh -c "apk add --update iproute2 && ping target"
           for _ in $(seq 1 30); do docker logs tryme 2>&1 | grep -q 'bytes from' && break; sleep 1; done
           docker logs tryme 2>&1 | grep -q 'bytes from'
           docker run --rm --label testing-toolbox.pumba=ci -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.2.1 netem --duration 15s delay --time 3000 tryme
