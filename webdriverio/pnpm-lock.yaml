@@ -1178,8 +1178,8 @@ packages:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
 
-  execa@10.2.0:
-    resolution: {integrity: sha512-j1pFOVxaybMVCTNHSBuISL2KQcDS3KIE1wBmUp4n2X+1FgaQI2ZDJVy9TYxDyMCzYojRIMh9O8X/UoWZtxTJdw==}
+  execa@10.2.1:
+    resolution: {integrity: sha512-/Bofl3ZBh2Q4/PG0W63qFzP5vDAypi8Zc90UWTBzaDNIYiX7apPOd0N6L8hG8CojUdq4V51adu8BObP+iVsSTw==}
     engines: {node: '>=22'}
 
   exit-hook@5.1.0:
@@ -3095,7 +3095,7 @@ snapshots:
       commander: 15.0.0
       cross-spawn: 7.0.6
       ejs: 7.0.2
-      execa: 10.2.0
+      execa: 10.2.1
       import-meta-resolve: 4.2.0
       inquirer: 14.2.4(@types/node@24.19.2)
       normalize-package-data: 8.0.0
@@ -3301,7 +3301,7 @@ snapshots:
 
   events@3.3.0: {}
 
-  execa@10.2.0:
+  execa@10.2.1:
     dependencies:
       '@sindresorhus/merge-streams': 4.0.0
       figures: 6.1.0
