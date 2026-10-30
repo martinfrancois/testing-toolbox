@@ -9,7 +9,7 @@ Run these commands from the repository root.
 
 Example application:
 ```bash
-docker run -it --rm --name tryme alpine:3.24.2 sh -c "apk add --update iproute2 && ping www.example.com"
+docker run -it --rm --name tryme alpine:3.24.3 sh -c "apk add --update iproute2 && ping www.example.com"
 ```
 
 Delay network by 3s:
@@ -35,8 +35,8 @@ work even if a previous run was interrupted:
 
 ```bash
 chaos_network=$(docker network create --label testing-toolbox.pumba=presentation "toolbox-chaos-$(date +%s)-$$")
-docker run -d --label testing-toolbox.pumba=presentation --name target --network "$chaos_network" --pull=never alpine:3.24.2 sleep 3600
-docker run -it --rm --label testing-toolbox.pumba=presentation --name tryme --network "$chaos_network" --pull=never testing-toolbox/pumba-client:3.24.2 ping target
+docker run -d --label testing-toolbox.pumba=presentation --name target --network "$chaos_network" --pull=never alpine:3.24.3 sleep 3600
+docker run -it --rm --label testing-toolbox.pumba=presentation --name tryme --network "$chaos_network" --pull=never testing-toolbox/pumba-client:3.24.3 ping target
 ```
 
 Each run uses a unique network name and stores its exact ID in `chaos_network`.
