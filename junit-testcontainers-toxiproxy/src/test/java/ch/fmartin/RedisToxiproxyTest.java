@@ -29,7 +29,7 @@ class RedisToxiproxyTest {
     private Proxy proxy;
 
     @Container
-    public GenericContainer<?> redis = new GenericContainer<>("redis:8.10.2-alpine")
+    public GenericContainer<?> redis = new GenericContainer<>("redis:8.10.3-alpine")
             .withExposedPorts(6379)
             .withNetwork(network)
             .withNetworkAliases("redis");
