@@ -617,7 +617,7 @@ prepare_docker_images() {
     cache_image "alpine:3.24.3" || true
     cache_image "gaiaadm/pumba:1.2.1" || true
     cache_image "$pumba_nettools_image" || true
-    cache_image "redis:8.10.2-alpine" || true
+    cache_image "redis:8.10.3-alpine" || true
     cache_image "ghcr.io/shopify/toxiproxy:2.12.0" || true
 
     local client_image="testing-toolbox/pumba-client:3.24.3"
