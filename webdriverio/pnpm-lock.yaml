@@ -1118,8 +1118,8 @@ packages:
     engines: {node: '>=0.12.18'}
     hasBin: true
 
-  electron-to-chromium@1.5.468:
-    resolution: {integrity: sha512-8XdEp3sIqO+PzmVPxhzqHq/3+yCxp44m27cm2WY1sRn3ZhwKyKmqSi2hx6gEhmnOXmh8NUuYE00z6Onzn5m6DA==}
+  electron-to-chromium@1.5.469:
+    resolution: {integrity: sha512-HIR230i9MGRHzaB8QRfXePYN23CF5osVvSqrZWQxqmlIMkIrT//wCEiDMM8yK2Il8TTqw39sjbwR4W2/axBFag==}
 
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
@@ -2843,7 +2843,7 @@ snapshots:
       decamelize: 6.0.1
       deepmerge-ts: 8.0.2
       edgedriver: 8.0.0(@wdio/logger@10.1.0)
-      electron-to-chromium: 1.5.468
+      electron-to-chromium: 1.5.469
       geckodriver: 8.0.0(@wdio/logger@10.1.0)
       get-port: 7.2.0
       import-meta-resolve: 4.2.0
@@ -3223,7 +3223,7 @@ snapshots:
 
   ejs@7.0.2: {}
 
-  electron-to-chromium@1.5.468: {}
+  electron-to-chromium@1.5.469: {}
 
   emoji-regex@10.6.0: {}
 
