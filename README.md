@@ -4,5 +4,5 @@
 
 Click on the folders of the individual demos to see instructions on how to run them.
 
-The Java demos need JDK 25, and the JavaScript demos need Node.js 24. The `.tool-versions`
+The Java demos need JDK 25, and the JavaScript demos need Node.js 26. The `.tool-versions`
 file records both major versions for local use and CI.
