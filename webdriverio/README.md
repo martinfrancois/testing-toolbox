@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js v24 LTS, version 24.18.0 or newer. Node.js 24.16.0 and 24.17.0 contain
+- Node.js v26 LTS, version 24.18.0 or newer. Node.js 24.16.0 and 24.17.0 contain
   [an archive extraction regression](https://github.com/nodejs/node/issues/63487) that prevents the
   Chrome download from unpacking and leaves an empty report.
 
