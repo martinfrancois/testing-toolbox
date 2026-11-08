@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js v24 LTS
+- Node.js v26 LTS
 - pnpm
 
 ## Documentation
