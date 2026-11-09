@@ -34,5 +34,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs("-javaagent:${mockitoAgent.asPath}")
+    // The Mockito agent appends to the boot class path, which makes the JVM warn that class data
+    // sharing only covers boot loader classes. Sharing only speeds up JVM startup, so turn it off.
+    jvmArgs("-javaagent:${mockitoAgent.asPath}", "-Xshare:off")
 }
