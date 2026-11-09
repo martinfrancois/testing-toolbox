@@ -1,5 +1,6 @@
 package ch.fmartin;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -7,7 +8,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Map;
 import java.util.Optional;
 
 public class CurrencyConversionClient {
@@ -34,11 +34,9 @@ public class CurrencyConversionClient {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() == 200) {
-            Map<String, Object> responseMap = objectMapper.readValue(response.body(), Map.class);
-            Map<String, Double> rates = (Map<String, Double>) responseMap.get("rates");
-
-            if (rates != null && rates.get(toCurrency) != null) {
-                return Optional.of(BigDecimal.valueOf(rates.get(toCurrency)));
+            JsonNode rate = objectMapper.readTree(response.body()).path("rates").path(toCurrency);
+            if (rate.isNumber()) {
+                return Optional.of(rate.decimalValue());
             }
         }
 
