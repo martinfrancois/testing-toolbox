@@ -206,6 +206,16 @@
       ]
     },
     {
+      "description": "@types/node describes one Node.js major, so its majors join the runtime's pull request. config:recommended gives @types/node Node versioning, which holds each major until that Node.js major starts LTS. That is the same wait as the runtime, and odd majors never qualify.",
+      "matchPackageNames": [
+        "@types/node"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "Node.js runtime"
+    },
+    {
       "description": "Keep runtime declarations at major precision instead of pinning patch releases.",
       "matchDatasources": [
         "java-version",
