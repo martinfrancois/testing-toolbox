@@ -615,7 +615,7 @@ prepare_docker_images() {
     docker_ready || return
     section "Cache Docker images"
     cache_image "alpine:3.24.3" || true
-    cache_image "gaiaadm/pumba:1.4.0" || true
+    cache_image "gaiaadm/pumba:1.5.0" || true
     cache_image "$pumba_nettools_image" || true
     cache_image "redis:8.10.3-alpine" || true
     cache_image "ghcr.io/shopify/toxiproxy:2.12.0" || true
@@ -1131,7 +1131,7 @@ run_pumba() {
         pumba_options+=(--security-opt label=disable)
     fi
     if [[ "$ok" == true ]] && ! docker run \
-        "${pumba_options[@]}" -v "$socket:/var/run/docker.sock" gaiaadm/pumba:1.4.0 \
+        "${pumba_options[@]}" -v "$socket:/var/run/docker.sock" gaiaadm/pumba:1.5.0 \
         netem --duration 15s --tc-image "$pumba_nettools_image" --pull-image=false \
         delay --time 3000 "$client"; then
         last_reason="Pumba could not apply the network delay"
