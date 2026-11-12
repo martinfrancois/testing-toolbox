@@ -14,7 +14,7 @@ docker run -it --rm --name tryme alpine:3.24.3 sh -c "apk add --update iproute2 
 
 Delay network by 3s:
 ```bash
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.5.1 netem --duration 1m delay --time 3000 tryme
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.6.0 netem --duration 1m delay --time 3000 tryme
 ```
 
 Keep the socket mount in this command. Pumba needs access to Docker to find
@@ -52,7 +52,7 @@ covers the Pumba image; Pumba's `--pull-image=false` keeps its helper cached too
 docker run --rm --pull=never \
   --label testing-toolbox.pumba=presentation \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  gaiaadm/pumba:1.5.1 netem --duration 1m \
+  gaiaadm/pumba:1.6.0 netem --duration 1m \
   --tc-image ghcr.io/alexei-led/pumba-alpine-nettools:latest@sha256:bdcfacdd0c42f64cd280319d6dd5d3911f33425ce4a5168bb1b7de9570b72cd1 --pull-image=false \
   delay --time 3000 tryme
 ```
