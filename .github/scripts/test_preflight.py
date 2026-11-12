@@ -201,7 +201,7 @@ bootstrap_nvm
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "bin").mkdir()
-            for name in ("artillery", "json-server"):
+            for name in ("artillery", "mockoon-cli"):
                 cli = root / "bin" / name
                 cli.write_text("#!/bin/sh\necho ready\n")
                 cli.chmod(0o755)
@@ -230,14 +230,14 @@ export PNPM_HOME={str(root)!r}
 offline=false
 pnpm() {{ printf '%s\\n' "$@" >"$PNPM_HOME/install-args"; }}
 artillery() {{ return 0; }}
-json-server() {{ return 0; }}
+mockoon-cli() {{ return 0; }}
 prepare_artillery_tools
 [[ ${{#setup_problems[@]}} -eq 0 ]]
 ''')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             args = (root / "install-args").read_text().splitlines()
             self.assertEqual(args[:3], ["add", "-g", "--ignore-scripts"])
-            self.assertEqual({arg.split("@")[0] for arg in args[3:]}, {"artillery", "json-server"})
+            self.assertEqual({arg.rsplit("@", 1)[0] for arg in args[3:]}, {"artillery", "@mockoon/cli"})
 
     def test_pumba_uses_daemon_socket_override(self):
         script = Path(__file__).with_name("check_all_demos.sh")

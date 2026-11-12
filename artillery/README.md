@@ -12,7 +12,7 @@ https://www.artillery.io/docs/get-started/first-test
 ## Installation
 
 ```bash
-pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4
+pnpm add -g --ignore-scripts artillery@2.0.34 @mockoon/cli@9.10.0
 ```
 
 ## Run from the repository root
@@ -20,7 +20,7 @@ pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4
 Sample backend:
 
 ```bash
-json-server artillery/backend/db.json
+mockoon-cli start --data artillery/backend/mockoon.json --disable-log-to-file
 ```
 
 Simple load (burst) test:
@@ -37,6 +37,6 @@ artillery run artillery/complex.yml
 
 ## Run from inside the artillery folder
 
-- Backend: `json-server backend/db.json`
+- Backend: `mockoon-cli start --data backend/mockoon.json --disable-log-to-file`
 - Simple test: `artillery run simple.yml`
 - Complex test: `artillery run complex.yml`

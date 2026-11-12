@@ -658,7 +658,7 @@ prepare_node_dependencies() {
 }
 
 prepare_artillery_tools() {
-    section "Prepare global Artillery and json-server"
+    section "Prepare global Artillery and Mockoon CLI"
     if ! command_exists pnpm; then
         setup_problem "pnpm is unavailable for global Artillery preparation"
         return
@@ -676,19 +676,19 @@ prepare_artillery_tools() {
     hash -r
     if [[ "$offline" == false ]]; then
         # These HTTP scenarios need no browser downloads or native build hooks.
-        if ! pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4; then
-            setup_problem "pnpm could not install global Artillery and json-server"
+        if ! pnpm add -g --ignore-scripts artillery@2.0.34 @mockoon/cli@9.10.0; then
+            setup_problem "pnpm could not install global Artillery and Mockoon CLI"
         fi
     fi
-    if ! artillery --version || ! json-server --version; then
-        setup_problem "global Artillery or json-server is unavailable; reconnect and rerun preparation"
+    if ! artillery --version || ! mockoon-cli --version; then
+        setup_problem "global Artillery or Mockoon CLI is unavailable; reconnect and rerun preparation"
     fi
 }
 
 check_terminal_artillery() (
     restore_original_environment
-    artillery --version && json-server --version || \
-        reason "artillery or json-server is unavailable on the caller's PATH; run pnpm setup and reopen the terminal"
+    artillery --version && mockoon-cli --version || \
+        reason "artillery or mockoon-cli is unavailable on the caller's PATH; run pnpm setup and reopen the terminal"
 )
 
 run_java_demo() {
@@ -998,11 +998,11 @@ stop_backend() {
 }
 
 run_artillery() {
-    if ! command_exists artillery || ! command_exists json-server || ! command_exists curl || ! command_exists python3; then
-        reason "artillery, json-server, curl, or python3 is unavailable"
+    if ! command_exists artillery || ! command_exists mockoon-cli || ! command_exists curl || ! command_exists python3; then
+        reason "artillery, mockoon-cli, curl, or python3 is unavailable"
         return
     fi
-    local backend_log="$temp_root/json-server.log"
+    local backend_log="$temp_root/mockoon-cli.log"
     local simple="$temp_root/artillery-simple.json"
     local complex="$temp_root/artillery-complex.json"
     local simple_log="$temp_root/artillery-simple.log"
@@ -1010,13 +1010,13 @@ run_artillery() {
     # Job control puts the backend in a process group of its own, which is what
     # stop_backend signals.
     set -m
-    (cd "$repo_root" && json-server artillery/backend/db.json) >"$backend_log" 2>&1 &
+    (cd "$repo_root" && mockoon-cli start --data artillery/backend/mockoon.json --disable-log-to-file) >"$backend_log" 2>&1 &
     local backend_pid=$!
     set +m
     if ! wait_for_backend; then
         stop_backend "$backend_pid"
         tail -n 100 "$backend_log" >&2
-        reason "json-server did not start; see $diagnostic_root/checks/json-server.log"
+        reason "mockoon-cli did not start; see $diagnostic_root/checks/${backend_log##*/}"
         return
     fi
 
