@@ -377,7 +377,7 @@ jobs:
           docker run -d --label testing-toolbox.pumba=ci --name tryme --network "$chaos_network" alpine:3.24.3 sh -c "apk add --update iproute2 && ping target"
           for _ in $(seq 1 30); do docker logs tryme 2>&1 | grep -q 'bytes from' && break; sleep 1; done
           docker logs tryme 2>&1 | grep -q 'bytes from'
-          docker run --rm --label testing-toolbox.pumba=ci -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.5.1 netem --duration 15s delay --time 3000 tryme
+          docker run --rm --label testing-toolbox.pumba=ci -v /var/run/docker.sock:/var/run/docker.sock gaiaadm/pumba:1.6.0 netem --duration 15s delay --time 3000 tryme
           docker logs tryme > ping.log 2>&1
           ./pumba/cleanup.sh ci
       - name: Check that pings were delayed by at least 3 seconds
