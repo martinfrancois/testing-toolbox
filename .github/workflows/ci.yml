@@ -333,18 +333,18 @@ jobs:
           package_json_file: webdriverio/package.json
           run_install: false
       - run: pnpm setup
-      - run: pnpm add -g --ignore-scripts artillery@2.0.34 json-server@0.17.4
+      - run: pnpm add -g --ignore-scripts artillery@2.0.34 @mockoon/cli@9.10.0
       - name: Check plain commands in Windows PowerShell
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           artillery --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          json-server --version
+          mockoon-cli --version
           exit $LASTEXITCODE
       - name: Start the sample backend
         run: |
-          json-server backend/db.json &
+          mockoon-cli start --data backend/mockoon.json --disable-log-to-file &
           for _ in $(seq 1 30); do curl -sf http://localhost:3000/posts > /dev/null && break; sleep 1; done
           curl -sf http://localhost:3000/posts > /dev/null
       # Same scenarios as the talk with the load phases replaced by one short phase, so the

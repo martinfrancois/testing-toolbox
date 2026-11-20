@@ -55,7 +55,7 @@
         "/^\\.github/workflows/ci\\.yml$/"
       ],
       "matchStrings": [
-        "(?<depName>artillery|json-server)@(?<currentValue>[0-9][0-9A-Za-z.+-]*)"
+        "(?<depName>artillery|@mockoon/cli)@(?<currentValue>[0-9][0-9A-Za-z.+-]*)"
       ],
       "datasourceTemplate": "npm",
       "versioningTemplate": "npm"
@@ -123,7 +123,7 @@
     {
       "description": "Global CLI pins in the README, preparation script, and CI do not use the local dependency cooldown.",
       "matchManagers": ["custom.regex"],
-      "matchPackageNames": ["artillery", "json-server"],
+      "matchPackageNames": ["artillery", "@mockoon/cli"],
       "minimumReleaseAge": null
     },
     {

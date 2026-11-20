@@ -1,0 +1,68 @@
+{
+  "uuid": "1476b86e-f9fa-474c-9c22-a87160da0c5b",
+  "lastMigration": 33,
+  "name": "Artillery demo backend",
+  "port": 3000,
+  "hostname": "localhost",
+  "routes": [
+    {
+      "uuid": "7a6ea600-c74c-481b-8228-f28f9e0b369e",
+      "method": "get",
+      "endpoint": "posts",
+      "responses": [
+        {
+          "uuid": "0bd5260b-5498-476e-b75a-3f0e5090464e",
+          "bodyType": "FILE",
+          "filePath": "posts.json",
+          "default": true,
+          "sendFileAsBody": true,
+          "disableTemplating": true
+        }
+      ]
+    },
+    {
+      "uuid": "bc0f84ce-c59d-43e5-9b66-bba4ec25be14",
+      "method": "get",
+      "endpoint": "comments",
+      "responses": [
+        {
+          "uuid": "228e424d-84b6-4a04-9bb6-1b9a5c1033f0",
+          "bodyType": "FILE",
+          "filePath": "comments.json",
+          "default": true,
+          "sendFileAsBody": true,
+          "disableTemplating": true
+        }
+      ]
+    },
+    {
+      "uuid": "5112f549-ac62-476c-ad56-9811c6f53e5c",
+      "method": "get",
+      "endpoint": "profile",
+      "responses": [
+        {
+          "uuid": "e89b6b68-390e-40f5-91d3-3561ad95645e",
+          "bodyType": "FILE",
+          "filePath": "profile.json",
+          "default": true,
+          "sendFileAsBody": true,
+          "disableTemplating": true
+        }
+      ]
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "7a6ea600-c74c-481b-8228-f28f9e0b369e"
+    },
+    {
+      "type": "route",
+      "uuid": "bc0f84ce-c59d-43e5-9b66-bba4ec25be14"
+    },
+    {
+      "type": "route",
+      "uuid": "5112f549-ac62-476c-ad56-9811c6f53e5c"
+    }
+  ]
+}
